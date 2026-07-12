@@ -29,8 +29,10 @@ import {
   ShieldCheck,
   Sparkles,
   Sun,
+  X,
 } from 'lucide-react';
 import packageJson from '../package.json';
+import { SpecificationInfo } from './SpecificationInfo';
 
 type Status =
   | { kind: 'idle' }
@@ -59,6 +61,13 @@ export function App() {
     document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
     localStorage.setItem('esg-theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
+
+  useEffect(() => {
+    if (status.kind !== 'success' && status.kind !== 'error') return;
+
+    const timeout = window.setTimeout(() => setStatus({ kind: 'idle' }), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [status]);
 
   useEffect(() => {
     if (!maximizedEditor) return;
@@ -91,6 +100,7 @@ export function App() {
     try {
       updateInput(await file.text());
       setFileName(file.name);
+      setStatus({ kind: 'success', message: `${file.name} was uploaded successfully.` });
     } catch {
       setStatus({ kind: 'error', message: `Could not read ${file.name}.` });
     } finally {
@@ -126,6 +136,7 @@ export function App() {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
+      setStatus({ kind: 'success', message: 'Migrated specification copied to the clipboard.' });
     } catch {
       setStatus({ kind: 'error', message: 'Clipboard access is unavailable in this browser.' });
     }
@@ -144,6 +155,11 @@ export function App() {
     link.download = `${baseName}.migrated.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
+    setStatus({ kind: 'success', message: `${link.download} download started.` });
+  }
+
+  function showCopyToast(label: string) {
+    setStatus({ kind: 'success', message: `${label} copied to the clipboard.` });
   }
 
   return (
@@ -364,15 +380,35 @@ export function App() {
       {status.kind !== 'idle' ? (
         <div
           className={cn(
-            'mt-5 min-h-11 rounded-xl border px-4 py-3 text-sm',
-            status.kind === 'error' && 'border-destructive/40 bg-destructive/5 text-destructive',
-            status.kind === 'success' && 'border-primary/30 bg-primary/5 text-primary',
-            status.kind === 'loading' && 'bg-card/70 text-muted-foreground',
+            'fixed right-4 top-4 z-[60] flex w-[calc(100vw-2rem)] max-w-sm items-start gap-3 rounded-xl border bg-card/95 px-4 py-3 text-sm shadow-xl backdrop-blur sm:right-6 sm:top-6',
+            status.kind === 'error' && 'border-destructive/40 text-destructive',
+            status.kind === 'success' && 'border-primary/30 text-foreground',
+            status.kind === 'loading' && 'text-muted-foreground',
           )}
           role={status.kind === 'error' ? 'alert' : 'status'}
         >
-          {status.kind === 'loading' && 'Validating and transforming the specification…'}
-          {(status.kind === 'success' || status.kind === 'error') && status.message}
+          {status.kind === 'loading' ? (
+            <LoaderCircle
+              className="mt-0.5 size-4 shrink-0 animate-spin text-primary"
+              aria-hidden="true"
+            />
+          ) : status.kind === 'success' ? (
+            <Check className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          ) : null}
+          <span className="min-w-0 flex-1">
+            {status.kind === 'loading' && 'Validating and transforming the specification…'}
+            {(status.kind === 'success' || status.kind === 'error') && status.message}
+          </span>
+          {status.kind !== 'loading' ? (
+            <button
+              className="rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              type="button"
+              aria-label="Dismiss notification"
+              onClick={() => setStatus({ kind: 'idle' })}
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -388,6 +424,18 @@ export function App() {
           View on GitHub
         </a>
       </footer>
+
+      <SpecificationInfo
+        source={input}
+        target={output}
+        onCopied={showCopyToast}
+        onCopyError={() =>
+          setStatus({
+            kind: 'error',
+            message: 'Clipboard access is unavailable in this browser.',
+          })
+        }
+      />
     </main>
   );
 }
