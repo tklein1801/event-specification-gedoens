@@ -2,10 +2,11 @@ name: CI
 
 on:
   push:
+  pull_request:
 
 jobs:
   ci:
-    name: Lint & Build
+    name: Lint, typecheck, test & build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -17,11 +18,25 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Restore Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --include=optional
 
       - name: Lint
         run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
 
       - name: Build
         run: npm run build

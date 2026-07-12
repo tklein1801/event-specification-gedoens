@@ -1,0 +1,45 @@
+{
+  "name": "@event-specification-gedoens/ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "files": [
+    "dist",
+    "src/styles.css"
+  ],
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@event-specification-gedoens/eslint-config": "*",
+    "@event-specification-gedoens/typescript-config": "*",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "react": "^19.1.1",
+    "rimraf": "^6.0.1",
+    "vitest": "^3.2.4"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
