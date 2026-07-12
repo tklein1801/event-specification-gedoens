@@ -31,6 +31,20 @@ describe('AsyncApiSpecification', () => {
     expect(specification.list('schemas')).toEqual(['User', 'Address']);
   });
 
+  it('lists message trait component names', () => {
+    const specification = new AsyncApiSpecification({
+      asyncapi: '3.0.0',
+      components: {
+        messageTraits: {
+          CloudEventContext: {},
+          Correlation: {},
+        },
+      },
+    });
+
+    expect(specification.list('messageTraits')).toEqual(['CloudEventContext', 'Correlation']);
+  });
+
   it('returns an empty list when the component section is absent', () => {
     const specification = new AsyncApiSpecification({ asyncapi: '3.0.0' });
 

@@ -1,7 +1,7 @@
 import { InvalidAsyncApiSpecification } from './InvalidAsyncApiSpecification';
 import { AsyncApiEventCollector, type AsyncApiEvent } from './AsyncApiEventCollector';
 
-export type ListableComponent = 'messages' | 'schemas';
+export type ListableComponent = 'messageTraits' | 'messages' | 'schemas';
 
 export interface AsyncApiDocument {
   asyncapi: string;

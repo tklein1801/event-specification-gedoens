@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -66,6 +66,57 @@ describe('AsyncAPI migration app', () => {
 
     expect(screen.queryByText('Ready for a local migration.')).not.toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('inspects source and target specifications from the info card', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: {
+        value: JSON.stringify({
+          asyncapi: '2.6.0',
+          channels: {
+            orders: {
+              subscribe: { message: { $ref: '#/components/messages/OrderCreated' } },
+            },
+          },
+          components: {
+            messages: { OrderCreated: { name: 'OrderCreated.v1' } },
+            schemas: { Order: { type: 'object' } },
+            messageTraits: { CloudEventContext: {} },
+          },
+        }),
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open specification info' }));
+    const infoCard = screen.getByLabelText('Specification information');
+
+    expect(within(infoCard).getByText('2.6.0')).toBeInTheDocument();
+    expect(within(infoCard).getByText('PUB')).toBeInTheDocument();
+    expect(within(infoCard).getByText('OrderCreated.v1')).toBeInTheDocument();
+
+    await userEvent.click(within(infoCard).getByRole('button', { name: 'Messages 1' }));
+    expect(within(infoCard).queryByText('OrderCreated.v1')).not.toBeInTheDocument();
+    expect(within(infoCard).getByText('OrderCreated')).toBeInTheDocument();
+
+    await userEvent.click(within(infoCard).getByRole('button', { name: 'Schemas 1' }));
+    expect(within(infoCard).queryByText('OrderCreated')).not.toBeInTheDocument();
+    expect(within(infoCard).getByText('Order')).toBeInTheDocument();
+
+    await userEvent.click(within(infoCard).getByRole('button', { name: 'MessageTraits 1' }));
+    expect(within(infoCard).queryByText('Order')).not.toBeInTheDocument();
+    expect(within(infoCard).getByText('CloudEventContext')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+    await userEvent.click(within(infoCard).getByRole('tab', { name: /target/i }));
+    expect(within(infoCard).getByText('3.0.0')).toBeInTheDocument();
+
+    await userEvent.click(
+      within(infoCard).getByRole('button', { name: 'Close specification info' }),
+    );
+    expect(screen.queryByLabelText('Specification information')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open specification info' })).toBeInTheDocument();
   });
 
   it('validates an empty input', async () => {

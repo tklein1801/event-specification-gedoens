@@ -31,6 +31,7 @@ import {
   Sun,
 } from 'lucide-react';
 import packageJson from '../package.json';
+import { SpecificationInfo } from './SpecificationInfo';
 
 type Status =
   | { kind: 'idle' }
@@ -388,6 +389,8 @@ export function App() {
           View on GitHub
         </a>
       </footer>
+
+      <SpecificationInfo source={input} target={output} />
     </main>
   );
 }
