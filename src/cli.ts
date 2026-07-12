@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { boolean, run } from '@drizzle-team/brocli';
+import chalk from 'chalk';
 import {
   name as cliName,
   description as cliDescription,
@@ -8,14 +9,15 @@ import {
 } from '../package.json';
 import { ListMessages } from './commands/list-messages/list-messages.cmd';
 import { ListSchemas } from './commands/list-schemas/list-schemas.cmd';
+import { ListEvents } from './commands/list-events/list-events.cmd';
 import { Migrate } from './commands/migrate/migrate.cmd';
 import { logger } from './lib/logger';
 
-void run([ListMessages, ListSchemas, Migrate], {
+void run([ListEvents, ListMessages, ListSchemas, Migrate], {
   name: cliName,
   description: cliDescription,
   version: () => {
-    console.log(cliVersion);
+    console.log(chalk.bgBlue(` v${cliVersion} `), '\n');
   },
   globals: {
     verbose: boolean('verbose').desc('Enable verbose output').default(false),

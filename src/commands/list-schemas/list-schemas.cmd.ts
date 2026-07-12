@@ -1,12 +1,8 @@
-import { command } from '@drizzle-team/brocli';
-import { logger } from '../../lib/logger';
+import { createListComponentsCommand } from '../list-components.command';
 
-export const ListSchemas = command({
+export const ListSchemas = createListComponentsCommand({
   name: 'list-schemas',
   aliases: ['ls'],
-  desc: '',
-  shortDesc: '',
-  handler() {
-    logger.info('list schemas');
-  },
+  component: 'schemas',
+  description: 'List schemas from a JSON AsyncAPI specification',
 });

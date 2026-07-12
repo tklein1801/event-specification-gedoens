@@ -1,12 +1,8 @@
-import { command } from '@drizzle-team/brocli';
-import { logger } from '../../lib/logger';
+import { createListComponentsCommand } from '../list-components.command';
 
-export const ListMessages = command({
+export const ListMessages = createListComponentsCommand({
   name: 'list-messages',
   aliases: ['lm'],
-  desc: '',
-  shortDesc: '',
-  handler() {
-    logger.info('list messages');
-  },
+  component: 'messages',
+  description: 'List messages from a JSON AsyncAPI specification',
 });
