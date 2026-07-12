@@ -7,10 +7,65 @@ describe('AsyncAPI migration app', () => {
   afterEach(cleanup);
 
   beforeEach(() => {
+    localStorage.clear();
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      value: vi.fn().mockReturnValue({ matches: false }),
+    });
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
+  });
+
+  it('persists the selected color mode', async () => {
+    render(<App />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Use dark mode' }));
+
+    expect(document.documentElement).toHaveClass('dark');
+    expect(localStorage.getItem('esg-theme')).toBe('dark');
+    expect(screen.getByRole('button', { name: 'Use light mode' })).toBeInTheDocument();
+  });
+
+  it('opens both editors as full-page dialogs and restores them', async () => {
+    render(<App />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Maximize source editor' }));
+    expect(screen.getByRole('dialog', { name: 'Source specification' })).toHaveClass(
+      'fixed',
+      'inset-3',
+    );
+    expect(screen.getByRole('button', { name: 'Restore source editor' })).toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('hidden');
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(document.body.style.overflow).toBe('');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Maximize result editor' }));
+    expect(screen.getByRole('dialog', { name: 'Migrated specification' })).toHaveClass('fixed');
+    expect(screen.getByRole('button', { name: 'Restore result editor' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('editor-dialog-backdrop'));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('links to the repository and shows the app version', () => {
+    render(<App />);
+
+    expect(screen.getByRole('link', { name: /view on github/i })).toHaveAttribute(
+      'href',
+      'https://github.com/tklein1801/event-specification-gedoens',
+    );
+    expect(screen.getByText('AsyncAPI Migration Studio · v0.1.0')).toBeInTheDocument();
+  });
+
+  it('does not show an idle migration notice', () => {
+    render(<App />);
+
+    expect(screen.queryByText('Ready for a local migration.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('validates an empty input', async () => {

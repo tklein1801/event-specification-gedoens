@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   InvalidAsyncApiSpecification,
   migrateAsyncApiText,
@@ -21,10 +21,16 @@ import {
   Clipboard,
   Download,
   FileUp,
+  Github,
   LoaderCircle,
+  Maximize2,
+  Minimize2,
+  Moon,
   ShieldCheck,
   Sparkles,
+  Sun,
 } from 'lucide-react';
+import packageJson from '../package.json';
 
 type Status =
   | { kind: 'idle' }
@@ -40,7 +46,36 @@ export function App() {
   const [fileName, setFileName] = useState<string>();
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [copied, setCopied] = useState(false);
+  const [maximizedEditor, setMaximizedEditor] = useState<'source' | 'output' | null>(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const storedTheme = localStorage.getItem('esg-theme');
+    if (storedTheme) return storedTheme === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
+    localStorage.setItem('esg-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
+
+  useEffect(() => {
+    if (!maximizedEditor) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const restoreEditor = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMaximizedEditor(null);
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', restoreEditor);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', restoreEditor);
+    };
+  }, [maximizedEditor]);
 
   function updateInput(value: string) {
     setInput(value);
@@ -126,11 +161,21 @@ export function App() {
             Paste YAML or JSON, or choose a local specification. Everything runs in this browser;
             your AsyncAPI document never leaves the device.
           </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-xl border bg-card/70 px-3 py-2 text-xs text-muted-foreground shadow-sm">
+            <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
+            Local-only processing
+          </div>
         </div>
-        <div className="flex items-center gap-2 self-start rounded-xl border bg-card/70 px-3 py-2 text-xs text-muted-foreground shadow-sm lg:self-auto">
-          <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-          Local-only processing
-        </div>
+        <Button
+          className="self-start lg:self-auto"
+          variant="outline"
+          size="icon"
+          aria-label={darkMode ? 'Use light mode' : 'Use dark mode'}
+          title={darkMode ? 'Use light mode' : 'Use dark mode'}
+          onClick={() => setDarkMode((current) => !current)}
+        >
+          {darkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        </Button>
       </header>
 
       <section className="mb-5 flex flex-col gap-4 rounded-2xl border bg-card/80 p-4 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
@@ -156,18 +201,60 @@ export function App() {
         </Button>
       </section>
 
+      {maximizedEditor ? (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+          data-testid="editor-dialog-backdrop"
+          aria-hidden="true"
+          onClick={() => setMaximizedEditor(null)}
+        />
+      ) : null}
+
       <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-2">
-        <Card className="flex min-h-[34rem] flex-col overflow-hidden bg-card/90">
+        <Card
+          className={cn(
+            'flex flex-col overflow-hidden bg-card/90',
+            maximizedEditor === 'source'
+              ? 'fixed inset-3 z-50 min-h-0 shadow-2xl ring-1 ring-border sm:inset-6 lg:inset-10'
+              : 'min-h-[34rem]',
+            maximizedEditor === 'output' && 'hidden',
+          )}
+          role={maximizedEditor === 'source' ? 'dialog' : undefined}
+          aria-modal={maximizedEditor === 'source' ? true : undefined}
+          aria-labelledby={maximizedEditor === 'source' ? 'source-editor-title' : undefined}
+        >
           <CardHeader className="border-b">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle>Source specification</CardTitle>
+                <CardTitle id="source-editor-title">Source specification</CardTitle>
                 <CardDescription>AsyncAPI YAML or JSON</CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
-                <FileUp className="size-4" aria-hidden="true" />
-                Choose file
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => fileInput.current?.click()}>
+                  <FileUp className="size-4" aria-hidden="true" />
+                  Choose file
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-9"
+                  aria-label={
+                    maximizedEditor === 'source'
+                      ? 'Restore source editor'
+                      : 'Maximize source editor'
+                  }
+                  title={maximizedEditor === 'source' ? 'Restore editor' : 'Maximize editor'}
+                  onClick={() =>
+                    setMaximizedEditor((current) => (current === 'source' ? null : 'source'))
+                  }
+                >
+                  {maximizedEditor === 'source' ? (
+                    <Minimize2 className="size-4" />
+                  ) : (
+                    <Maximize2 className="size-4" />
+                  )}
+                </Button>
+              </div>
               <input
                 ref={fileInput}
                 className="hidden"
@@ -185,7 +272,10 @@ export function App() {
             </Label>
             <Textarea
               id="source-input"
-              className="min-h-[26rem] flex-1 resize-none leading-6"
+              className={cn(
+                'flex-1 resize-none leading-6',
+                maximizedEditor === 'source' ? 'min-h-0' : 'min-h-[26rem]',
+              )}
               value={input}
               spellCheck={false}
               placeholder={'asyncapi: 2.6.0\ninfo:\n  title: Order Events\n  version: 1.0.0'}
@@ -197,11 +287,22 @@ export function App() {
           </CardContent>
         </Card>
 
-        <Card className="flex min-h-[34rem] flex-col overflow-hidden bg-card/90">
+        <Card
+          className={cn(
+            'flex flex-col overflow-hidden bg-card/90',
+            maximizedEditor === 'output'
+              ? 'fixed inset-3 z-50 min-h-0 shadow-2xl ring-1 ring-border sm:inset-6 lg:inset-10'
+              : 'min-h-[34rem]',
+            maximizedEditor === 'source' && 'hidden',
+          )}
+          role={maximizedEditor === 'output' ? 'dialog' : undefined}
+          aria-modal={maximizedEditor === 'output' ? true : undefined}
+          aria-labelledby={maximizedEditor === 'output' ? 'output-editor-title' : undefined}
+        >
           <CardHeader className="border-b">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <CardTitle>Migrated specification</CardTitle>
+                <CardTitle id="output-editor-title">Migrated specification</CardTitle>
                 <CardDescription>Formatted in the source format</CardDescription>
               </div>
               <div className="flex gap-2">
@@ -218,6 +319,26 @@ export function App() {
                   <Download className="size-4" aria-hidden="true" />
                   Download
                 </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="size-9"
+                  aria-label={
+                    maximizedEditor === 'output'
+                      ? 'Restore result editor'
+                      : 'Maximize result editor'
+                  }
+                  title={maximizedEditor === 'output' ? 'Restore editor' : 'Maximize editor'}
+                  onClick={() =>
+                    setMaximizedEditor((current) => (current === 'output' ? null : 'output'))
+                  }
+                >
+                  {maximizedEditor === 'output' ? (
+                    <Minimize2 className="size-4" />
+                  ) : (
+                    <Maximize2 className="size-4" />
+                  )}
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -227,7 +348,10 @@ export function App() {
             </Label>
             <Textarea
               id="migration-output"
-              className="min-h-[26rem] flex-1 resize-none bg-muted/40 leading-6"
+              className={cn(
+                'flex-1 resize-none bg-muted/40 leading-6',
+                maximizedEditor === 'output' ? 'min-h-0' : 'min-h-[26rem]',
+              )}
               value={output}
               readOnly
               spellCheck={false}
@@ -237,20 +361,33 @@ export function App() {
         </Card>
       </div>
 
-      <div
-        className={cn(
-          'mt-5 min-h-11 rounded-xl border px-4 py-3 text-sm',
-          status.kind === 'error' && 'border-destructive/40 bg-destructive/5 text-destructive',
-          status.kind === 'success' && 'border-primary/30 bg-primary/5 text-primary',
-          (status.kind === 'idle' || status.kind === 'loading') &&
-            'bg-card/70 text-muted-foreground',
-        )}
-        role={status.kind === 'error' ? 'alert' : 'status'}
-      >
-        {status.kind === 'idle' && 'Ready for a local migration.'}
-        {status.kind === 'loading' && 'Validating and transforming the specification…'}
-        {(status.kind === 'success' || status.kind === 'error') && status.message}
-      </div>
+      {status.kind !== 'idle' ? (
+        <div
+          className={cn(
+            'mt-5 min-h-11 rounded-xl border px-4 py-3 text-sm',
+            status.kind === 'error' && 'border-destructive/40 bg-destructive/5 text-destructive',
+            status.kind === 'success' && 'border-primary/30 bg-primary/5 text-primary',
+            status.kind === 'loading' && 'bg-card/70 text-muted-foreground',
+          )}
+          role={status.kind === 'error' ? 'alert' : 'status'}
+        >
+          {status.kind === 'loading' && 'Validating and transforming the specification…'}
+          {(status.kind === 'success' || status.kind === 'error') && status.message}
+        </div>
+      ) : null}
+
+      <footer className="mt-5 flex flex-col items-center justify-between gap-3 border-t pt-5 text-xs text-muted-foreground sm:flex-row">
+        <span>AsyncAPI Migration Studio · v{packageJson.version}</span>
+        <a
+          className="inline-flex items-center gap-2 rounded-md px-2 py-1.5 font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          href="https://github.com/tklein1801/event-specification-gedoens"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Github className="size-4" aria-hidden="true" />
+          View on GitHub
+        </a>
+      </footer>
     </main>
   );
 }

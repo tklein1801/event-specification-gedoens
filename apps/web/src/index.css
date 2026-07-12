@@ -21,6 +21,25 @@
   --color-destructive: var(--destructive);
 }
 
+.dark {
+  --background: oklch(0.16 0.025 260);
+  --foreground: oklch(0.94 0.01 250);
+  --card: oklch(0.2 0.025 260);
+  --card-foreground: oklch(0.94 0.01 250);
+  --primary: oklch(0.72 0.16 250);
+  --primary-foreground: oklch(0.16 0.025 260);
+  --secondary: oklch(0.27 0.03 255);
+  --secondary-foreground: oklch(0.92 0.015 250);
+  --muted: oklch(0.25 0.02 255);
+  --muted-foreground: oklch(0.7 0.025 250);
+  --accent: oklch(0.3 0.04 250);
+  --accent-foreground: oklch(0.95 0.01 250);
+  --border: oklch(0.34 0.025 255);
+  --input: oklch(0.4 0.03 255);
+  --ring: oklch(0.72 0.15 250);
+  --destructive: oklch(0.7 0.19 25);
+}
+
 html {
   min-width: 320px;
   min-height: 100%;
