@@ -1,106 +1,63 @@
-# Migrate-Command
+# Migration command reference
 
-Der `migrate`-Command migriert eine JSON-basierte AsyncAPI-Spezifikation zwischen
-CloudEvents Binary/Unstructured Mode auf AsyncAPI 2.x und Structured Mode auf
-AsyncAPI 3.x. Die fachliche Grundlage ist in [`wissen.md`](../wissen.md)
-festgehalten.
+The `migrate` command converts a JSON AsyncAPI specification between AsyncAPI 2.x with unstructured CloudEvents and AsyncAPI 3.x with structured CloudEvents. See [Structured and unstructured CloudEvents](structured-vs-unstructured.md) for the conceptual differences.
 
-> Der Command überschreibt die angegebene Datei erst nach einer erfolgreichen
-> Migration. Vor der Verwendung auf produktiven Spezifikationen sollte die Datei
-> versioniert oder gesichert sein.
+> The command overwrites the specified file only after the migration succeeds. Commit or back up production specifications before running it.
 
-## Aufruf
+## Usage
 
-```shell
+```sh
 esg migrate to-structured asyncapi.json
 esg migrate to-unstructured asyncapi.json
 ```
 
-Die Kurzform des Commands ist `m`.
+The command alias is `m`. The input must be a JSON document.
 
-## Aktion `to-structured`
+## `to-structured`
 
-Eingabe ist ein AsyncAPI-2.x-Dokument. Folgende Aktionen werden ausgeführt:
+This action expects an AsyncAPI 2.x document and applies the following changes:
 
-1. `asyncapi` wird auf `3.0.0` gesetzt.
-2. Jeder bisherige Channel-Key wird zur `address` des AsyncAPI-3-Channels.
-3. `channels.<name>.subscribe` wird zu einer Top-Level-Operation mit
-   `action: send`.
-4. `channels.<name>.publish` wird zu einer Top-Level-Operation mit
-   `action: receive`.
-5. Vorhandene `operationId`-Werte werden als Operationsschlüssel übernommen.
-   Fehlende oder doppelte Bezeichner werden stabil und kollisionsfrei erzeugt.
-6. Operations-Messages werden unter `channels.<name>.messages` abgelegt und von
-   der Operation referenziert. JSON-Pointer-Sonderzeichen in Channel-Namen
-   werden dabei korrekt escaped.
-7. Jede lokale Message wird in einen Structured-CloudEvent-Envelope überführt:
-   - CloudEvent-Attribute aus `headers` und referenzierten Message-Traits werden
-     zu `payload.properties`.
-   - Die bisherige Fachpayload wird `payload.properties.data`.
-   - `specversion`, `id`, `source`, `type` und `data` werden als Pflichtfelder
-     modelliert.
-   - `contentType` wird `application/cloudevents+json`.
-   - Message-Beispiele werden von getrennten `headers`/`payload` zu einer
-     gemeinsamen Structured-Payload umgebaut.
-8. Migrierte Header-Traits werden aus `components.messageTraits` entfernt.
-   Andere Trait-Inhalte bleiben an der jeweiligen Message erhalten.
-9. Sonstige Dokument-, Channel-, Operations-, Message- und Component-Felder
-   werden unverändert übernommen.
+1. Sets `asyncapi` to `3.0.0`.
+2. Uses every existing channel key as the AsyncAPI 3 channel's `address`.
+3. Converts `channels.<name>.subscribe` into a top-level operation with `action: send`.
+4. Converts `channels.<name>.publish` into a top-level operation with `action: receive`.
+5. Reuses existing `operationId` values as operation keys. Missing or duplicate identifiers are generated deterministically and without collisions.
+6. Moves operation messages to `channels.<name>.messages` and references them from the operation. Special characters in JSON Pointers are escaped.
+7. Converts each local message to a structured CloudEvent envelope:
+   - CloudEvent attributes from `headers` and referenced message traits become `payload.properties`.
+   - The previous business payload becomes `payload.properties.data`.
+   - `specversion`, `id`, `source`, `type`, and `data` become required fields.
+   - `contentType` becomes `application/cloudevents+json`.
+   - Examples with separate `headers` and `payload` values become a single structured payload.
+8. Removes migrated header traits from `components.messageTraits`. Other trait content remains attached to its message.
+9. Preserves other document, channel, operation, message, and component fields.
 
-## Aktion `to-unstructured`
+## `to-unstructured`
 
-Eingabe ist ein AsyncAPI-3.x-Dokument. Folgende Aktionen werden ausgeführt:
+This action expects an AsyncAPI 3.x document and applies the following changes:
 
-1. `asyncapi` wird auf `2.0.0` gesetzt.
-2. Die `address` eines Channels wird wieder zum Channel-Key. Fehlt sie, wird der
-   logische Channel-Name verwendet.
-3. Top-Level-Operationen mit `action: send` werden zu `subscribe`.
-4. Top-Level-Operationen mit `action: receive` werden zu `publish`.
-5. Der Operationsschlüssel wird als `operationId` eingetragen.
-6. Explizit referenzierte Operations-Messages werden übernommen. Fehlt die
-   Message-Liste, werden alle Messages des referenzierten Channels verwendet;
-   mehrere Messages werden als `oneOf` modelliert.
-7. Jede lokale Structured-CloudEvent-Message wird in Binary/Unstructured Mode
-   zurückgeführt:
-   - `payload.properties.data` wird wieder die Fachpayload.
-   - Die übrigen Envelope-Felder werden zum Header-Schema.
-   - `datacontenttype.const` beziehungsweise `.default` bestimmt den
-     Message-`contentType`; ohne Angabe wird `application/json` verwendet.
-   - Structured-Beispiele werden wieder in `headers` und `payload` getrennt.
-8. Der Top-Level-Bereich `operations` entfällt im AsyncAPI-2-Ergebnis.
+1. Sets `asyncapi` to `2.0.0`.
+2. Uses a channel's `address` as the AsyncAPI 2 channel key. If no address exists, it uses the logical channel name.
+3. Converts top-level operations with `action: send` into `subscribe` operations.
+4. Converts top-level operations with `action: receive` into `publish` operations.
+5. Stores the top-level operation key as `operationId`.
+6. Uses explicitly referenced operation messages. If an operation has no message list, it uses all messages from the referenced channel; multiple messages become `oneOf`.
+7. Converts each local structured CloudEvent message to unstructured mode:
+   - `payload.properties.data` becomes the business payload.
+   - The remaining envelope fields become the header schema.
+   - `datacontenttype.const` or `datacontenttype.default` determines the message `contentType`; the fallback is `application/json`.
+   - Structured examples are split into `headers` and `payload` values.
+8. Removes the top-level `operations` section from the AsyncAPI 2 result.
 
-## Validierung und Fehlerfälle
+## Validation and limitations
 
-Die Migration bricht ohne Schreibzugriff auf die Zieldatei ab, wenn unter
-anderem:
+The migration fails without changing the target file when, among other cases:
 
-- die Ausgangsversion nicht zur Aktion passt,
-- Channels, Operationen oder Messages nicht als Objekte vorliegen,
-- eine AsyncAPI-3-Operation keinen Top-Level-Channel referenziert,
-- mehrere logische Channels dieselbe `address` verwenden,
-- mehrere Operationen auf dieselbe AsyncAPI-2-Richtung eines Channels abgebildet
-  würden oder
-- einer Structured Message `payload.properties.data` fehlt.
+- The source version does not match the selected action.
+- Channels, operations, or messages are not objects.
+- An AsyncAPI 3 operation does not reference a top-level channel.
+- Multiple logical channels use the same `address`.
+- Multiple operations map to the same AsyncAPI 2 operation direction on one channel.
+- A structured message does not define `payload.properties.data`.
 
-Transport- und Binding-Felder werden erhalten, aber nicht protokollspezifisch
-umgeschrieben. Insbesondere Server-Definitionen und seltene AsyncAPI-3-Konstrukte
-wie Operation-Replies müssen bei Bedarf nach der Migration fachlich geprüft
-werden.
-
-## Implementierungsstruktur und Tests
-
-Die Umsetzung trennt CLI, Datei-I/O, Auswahl der Migrationsstrategie,
-Dokumentmigration, Navigation durch JSON-Referenzen und Message-Migration in
-injizierbare Klassen. Öffentliche Ausführungsschritte sowie die eigentlichen
-Migrationen verwenden den vorhandenen `@log`-Decorator.
-
-Unit-Tests decken ab:
-
-- CLI-Argumente und erlaubte Aktionen,
-- die Read-Migrate-Write-Orchestrierung,
-- beide Richtungen der Dokument- und Operationsmigration,
-- direkte, referenzierte und `oneOf`-Messages,
-- stabile kollisionsfreie Bezeichner,
-- Structured-/Unstructured-Payloads und Beispiele,
-- Trait- und Header-Behandlung sowie
-- Versions- und Payload-Fehlerfälle.
+Transport and binding fields are preserved but are not rewritten for a specific protocol. Review server definitions and less common AsyncAPI 3 constructs, such as operation replies, after migration.

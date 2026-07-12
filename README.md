@@ -1,75 +1,85 @@
-# event-schema-ged-ns
+# Event Specification Gedoens
 
-## Getting started
+## About the project
 
-### Prerequisites
+### General introduction
 
-- Node.js 20 or newer
-- npm
+Event Specification Gedoens is a command-line tool for inspecting JSON-based AsyncAPI specifications and migrating them between AsyncAPI 2.x with unstructured CloudEvents and AsyncAPI 3.x with structured CloudEvents.
 
-### Installation
+### Features
 
-Install all dependencies:
+- List published and consumed events.
+- List message and schema components.
+- Migrate AsyncAPI 2.x unstructured CloudEvents to AsyncAPI 3.x structured CloudEvents.
+- Migrate AsyncAPI 3.x structured CloudEvents back to AsyncAPI 2.x unstructured CloudEvents.
+- Control console logging with verbose and silent modes.
+
+### How to use
+
+The project requires Node.js 20 or newer and npm. Install the dependencies and build the CLI:
 
 ```sh
 npm install
+npm run build
+npm link
 ```
 
-The `prepare` script runs Husky automatically after installation and installs the Git hooks.
+`npm link` makes the CLI available locally. Run a command with one of the supported executable names, such as `esg`:
 
-### Development
+```sh
+esg list-events asyncapi.json
+esg list-messages asyncapi.json
+esg list-schemas asyncapi.json
+esg migrate to-structured asyncapi.json
+esg migrate to-unstructured asyncapi.json
+```
 
-Run the available checks locally:
+Use `--verbose` for debug output or `--silent` to suppress logs. Run `esg --help` for the complete CLI reference.
+
+## Documentation
+
+- [Structured and unstructured CloudEvents](docs/structured-vs-unstructured.md)
+- [Migration command reference](docs/migrate-command.md)
+
+## Developing
+
+### Clone the repository
+
+```sh
+git clone https://github.com/tklein1801/event-specification-gedoens.git
+cd event-specification-gedoens
+npm install
+```
+
+Useful development commands include:
 
 ```sh
 npm run typecheck
 npm run lint
 npm run format:check
-```
-
-Format the project:
-
-```sh
-npm run format
-```
-
-Fix lint issues where possible:
-
-```sh
-npm run lint:fix
-```
-
-Build the project:
-
-```sh
+npm run test:run
 npm run build
 ```
 
-### Logging
+### CI/CD
 
-Command output is written to the console through the project logger. The log level and output format can be configured globally:
+#### `ci.yml`
 
-```sh
-esg list-messages --log-level debug --log-format pretty
-esg list-schemas --log-level info --log-format json
-```
+The [CI workflow](.github/workflows/ci.yml) runs for every push. It installs dependencies with `npm ci`, lints the codebase, and builds the project using Node.js 22.
 
-Supported log levels are `error`, `warn`, `info`, `debug`, and `silent`. Supported formats are the human-readable `pretty` format and machine-readable `json`.
+#### Versioning
 
-`--verbose` is a shortcut for the `debug` level. `--silent` disables log output and takes precedence over both `--verbose` and `--log-level`.
+Releases are created from `main` by [Semantic Release](https://semantic-release.gitbook.io/semantic-release/) through the [release workflow](.github/workflows/release.yml). The project follows semantic versioning based on Conventional Commit types:
 
-## Code quality setup
+- Breaking changes create a major release.
+- `feat` commits create a minor release.
+- `fix`, `perf`, `refactor`, and `revert` commits create a patch release.
+- Documentation, style, test, build, CI, and routine chore commits do not create a release.
 
-This project uses a simple npm-based quality setup:
+## Credits
 
-- **Prettier** formats the codebase.
-- **Husky** installs Git hooks via the `prepare` npm script.
-- **lint-staged** runs formatting and linting only on staged files before a commit.
+The command-line interface is built with [`@drizzle-team/brocli`](https://www.npmjs.com/package/@drizzle-team/brocli).
 
-The pre-commit hook runs:
+## License
 
-```sh
-npx lint-staged
-```
-
-The staged file rules are configured in `.lintstagedrc.json`.
+This project is licensed under the [MIT License](LICENSE).
