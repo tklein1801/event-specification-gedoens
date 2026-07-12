@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite",
+    "start": "serve --single --listen $PORT dist",
     "test": "vitest run",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
@@ -16,7 +17,8 @@
     "@event-specification-gedoens/ui": "*",
     "lucide-react": "^0.468.0",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "serve": "^14.2.4"
   },
   "devDependencies": {
     "@event-specification-gedoens/eslint-config": "*",
