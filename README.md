@@ -8,7 +8,7 @@ Event Specification Gedoens is a Turborepo containing a command-line tool and a 
 apps/
 └── web/                 React, Vite and Tailwind browser application
 packages/
-├── cli/                 Published `event-specification-gedoens` CLI
+├── cli/                 Published `@tklein1801/esg-cli` CLI
 ├── migration-core/      Browser- and CLI-safe parsing and migration API
 ├── ui/                  Shared shadcn/ui components and design tokens
 ├── eslint-config/       Shared flat ESLint configurations
@@ -44,9 +44,9 @@ npm run format       # format the repository
 Target an individual workspace when needed:
 
 ```sh
-npm run dev --workspace @event-specification-gedoens/web
+npm run dev --workspace @tklein1801/esg-app
 npm run test --workspace @event-specification-gedoens/migration-core
-npm run build --workspace event-specification-gedoens
+npm run build --workspace @tklein1801/esg-cli
 ```
 
 ## Web application
@@ -66,8 +66,8 @@ Migration happens entirely in the browser. Specifications are never uploaded to 
 Build and link the CLI locally:
 
 ```sh
-npm run build --workspace event-specification-gedoens
-npm link --workspace event-specification-gedoens
+npm run build --workspace @tklein1801/esg-cli
+npm link --workspace @tklein1801/esg-cli
 ```
 
 Use any of the executable aliases (`esg`, `event-schema-gedoens`, or `event-specification-gedoens`):
@@ -105,7 +105,7 @@ Reusable React components belong in `packages/ui`, not in an individual app. Its
 
 ## CI and releases
 
-The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. The release workflow repeats the same gates on `main` before Semantic Release publishes `packages/cli` under the existing npm package name. The browser-neutral migration core is bundled into the CLI artifact, so the published command remains self-contained.
+The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. The release workflow repeats the same gates on `main` before Semantic Release publishes `packages/cli` as `@tklein1801/esg-cli`. The browser-neutral migration core is bundled into the CLI artifact, so the published command remains self-contained.
 
 ## Documentation
 
