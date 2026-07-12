@@ -6,7 +6,8 @@ export type ListableComponent = 'messages' | 'schemas';
 
 export interface AsyncApiDocument {
   asyncapi: string;
-  components?: Partial<Record<ListableComponent, Record<string, unknown>>>;
+  components?: Partial<Record<ListableComponent, Record<string, unknown>>> &
+    Record<string, unknown>;
   channels?: Record<string, unknown>;
   operations?: Record<string, unknown>;
   [key: string]: unknown;
@@ -45,6 +46,11 @@ export class AsyncApiSpecification {
   @log
   listEvents(): AsyncApiEvent[] {
     return new AsyncApiEventCollector(this.#document).collect();
+  }
+
+  @log
+  toDocument(): AsyncApiDocument {
+    return structuredClone(this.#document);
   }
 
   private static isDocument(value: unknown): value is AsyncApiDocument {

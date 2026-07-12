@@ -1,17 +1,18 @@
 import 'dotenv/config';
 import { EnvironmentVariableNotSet } from './error/EnvironmentVariableNotSet';
 
-export class EnvironmentVariable<T> {
-  private #key: string;
-  private #value: T;
+export class EnvironmentVariable {
+  readonly #key: string;
+  readonly #value: string;
 
   constructor(key: string) {
-    if (!process.env[key]) {
+    const value = process.env[key];
+    if (value === undefined) {
       throw new EnvironmentVariableNotSet(key);
     }
 
     this.#key = key;
-    this.#value = process.env[key];
+    this.#value = value;
   }
 
   get key() {
