@@ -1,6 +1,6 @@
 # Migration command reference
 
-The `migrate` command converts a JSON AsyncAPI specification between AsyncAPI 2.x with unstructured CloudEvents and AsyncAPI 3.x with structured CloudEvents. See [Structured and unstructured CloudEvents](structured-vs-unstructured.md) for the conceptual differences.
+The `migrate` command converts a JSON or YAML AsyncAPI specification between AsyncAPI 2.x with unstructured CloudEvents and AsyncAPI 3.x with structured CloudEvents. The same migration-core API powers the CLI and browser application. See [Structured and unstructured CloudEvents](structured-vs-unstructured.md) for the conceptual differences.
 
 > The command overwrites the specified file only after the migration succeeds. Commit or back up production specifications before running it.
 
@@ -11,7 +11,7 @@ esg migrate to-structured asyncapi.json
 esg migrate to-unstructured asyncapi.json
 ```
 
-The command alias is `m`. The input must be a JSON document.
+The command alias is `m`. The input may be JSON, YAML, or YML. A successful migration overwrites the file using JSON for `.json` paths and YAML for `.yaml` or `.yml` paths.
 
 ## `to-structured`
 

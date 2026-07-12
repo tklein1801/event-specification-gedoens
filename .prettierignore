@@ -1,3 +1,8 @@
 dist/
 node_modules/
 *.tsbuildinfo
+.turbo/
+
+# Local reference material kept outside the workspace source tree
+OP_PURCHASEORDEREVENTS.json
+wissen.md

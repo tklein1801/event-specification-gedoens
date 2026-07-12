@@ -1,49 +1,26 @@
 # Event Specification Gedoens
 
-## About the project
+Event Specification Gedoens is a Turborepo containing a command-line tool and a fully client-side React application for inspecting and migrating AsyncAPI specifications. Both surfaces use one shared migration engine, so JSON and YAML documents are transformed identically.
 
-### General introduction
+## Monorepo structure
 
-Event Specification Gedoens is a command-line tool for inspecting JSON-based AsyncAPI specifications and migrating them between AsyncAPI 2.x with unstructured CloudEvents and AsyncAPI 3.x with structured CloudEvents.
-
-### Features
-
-- List published and consumed events.
-- List message and schema components.
-- Migrate AsyncAPI 2.x unstructured CloudEvents to AsyncAPI 3.x structured CloudEvents.
-- Migrate AsyncAPI 3.x structured CloudEvents back to AsyncAPI 2.x unstructured CloudEvents.
-- Control console logging with verbose and silent modes.
-
-### How to use
-
-The project requires Node.js 20 or newer and npm. Install the dependencies and build the CLI:
-
-```sh
-npm install
-npm run build
-npm link
+```text
+apps/
+└── web/                 React, Vite and Tailwind browser application
+packages/
+├── cli/                 Published `event-specification-gedoens` CLI
+├── migration-core/      Browser- and CLI-safe parsing and migration API
+├── ui/                  Shared shadcn/ui components and design tokens
+├── eslint-config/       Shared flat ESLint configurations
+└── typescript-config/   Shared TypeScript configurations
 ```
 
-`npm link` makes the CLI available locally. Run a command with one of the supported executable names, such as `esg`:
+The root uses npm Workspaces and Turborepo. Package builds run before dependent app and CLI tasks, and generated `dist/` folders are cached locally by Turbo.
 
-```sh
-esg list-events asyncapi.json
-esg list-messages asyncapi.json
-esg list-schemas asyncapi.json
-esg migrate to-structured asyncapi.json
-esg migrate to-unstructured asyncapi.json
-```
+## Requirements and installation
 
-Use `--verbose` for debug output or `--silent` to suppress logs. Run `esg --help` for the complete CLI reference.
-
-## Documentation
-
-- [Structured and unstructured CloudEvents](docs/structured-vs-unstructured.md)
-- [Migration command reference](docs/migrate-command.md)
-
-## Developing
-
-### Clone the repository
+- Node.js 20.19 or newer (Node.js 22 is used in CI)
+- npm 11
 
 ```sh
 git clone https://github.com/tklein1801/event-specification-gedoens.git
@@ -51,34 +28,89 @@ cd event-specification-gedoens
 npm install
 ```
 
-Useful development commands include:
+## Development commands
+
+Run all commands from the repository root:
 
 ```sh
-npm run typecheck
-npm run lint
-npm run format:check
-npm run test:run
-npm run build
+npm run dev          # start workspace development processes (including Vite)
+npm run build        # build all apps and packages
+npm run test         # run all Vitest suites once
+npm run lint         # lint all source and test files
+npm run typecheck    # type-check every workspace
+npm run format       # format the repository
 ```
 
-### CI/CD
+Target an individual workspace when needed:
 
-#### `ci.yml`
+```sh
+npm run dev --workspace @event-specification-gedoens/web
+npm run test --workspace @event-specification-gedoens/migration-core
+npm run build --workspace event-specification-gedoens
+```
 
-The [CI workflow](.github/workflows/ci.yml) runs for every push. It installs dependencies with `npm ci`, lints the codebase, and builds the project using Node.js 22.
+## Web application
 
-#### Versioning
+Start the local application with `npm run dev` and open the Vite URL shown in the terminal. The responsive two-column interface supports:
 
-Releases are created from `main` by [Semantic Release](https://semantic-release.gitbook.io/semantic-release/) through the [release workflow](.github/workflows/release.yml). The project follows semantic versioning based on Conventional Commit types:
+- pasted JSON or YAML;
+- `.json`, `.yaml`, and `.yml` file uploads;
+- both migration directions;
+- validation, loading, success, and error states;
+- formatted results, clipboard copy, and local download.
 
-- Breaking changes create a major release.
-- `feat` commits create a minor release.
-- `fix`, `perf`, `refactor`, and `revert` commits create a patch release.
-- Documentation, style, test, build, CI, and routine chore commits do not create a release.
+Migration happens entirely in the browser. Specifications are never uploaded to a server.
 
-## Credits
+## CLI
 
-The command-line interface is built with [`@drizzle-team/brocli`](https://www.npmjs.com/package/@drizzle-team/brocli).
+Build and link the CLI locally:
+
+```sh
+npm run build --workspace event-specification-gedoens
+npm link --workspace event-specification-gedoens
+```
+
+Use any of the executable aliases (`esg`, `event-schema-gedoens`, or `event-specification-gedoens`):
+
+```sh
+esg list-events asyncapi.yaml
+esg list-messages asyncapi.json
+esg list-schemas asyncapi.yaml
+esg migrate to-structured asyncapi.yaml
+esg migrate to-unstructured asyncapi.json
+```
+
+Migration overwrites the supplied file after a successful transformation and preserves JSON/YAML based on the file extension. Use `--verbose` for debug output, `--silent` to suppress logs, and `esg --help` for the complete command reference.
+
+## Shared migration core
+
+`@event-specification-gedoens/migration-core` contains every parser, validator, navigator, CloudEvent transformer, and serializer used by the CLI and web app. It has no React, CLI, filesystem, or other Node-specific dependency.
+
+Its public API accepts a YAML/JSON string or an object:
+
+```ts
+import { migrateAsyncApi, migrateAsyncApiText } from '@event-specification-gedoens/migration-core';
+
+const document = migrateAsyncApi(sourceObject, 'to-structured');
+const { content } = migrateAsyncApiText(yamlSource, 'to-unstructured');
+```
+
+Invalid input is reported as `InvalidAsyncApiSpecification` with a stable error code. See [the migration reference](docs/migrate-command.md) for transformation details and limitations.
+
+## Adding apps or packages
+
+Create a directory under `apps/` or `packages/` with its own `package.json`. Extend a configuration from `@event-specification-gedoens/typescript-config`, consume the shared ESLint config, and expose any of `build`, `dev`, `test`, `lint`, and `typecheck` that apply. Turbo discovers the workspace automatically through the root `workspaces` declaration.
+
+Reusable React components belong in `packages/ui`, not in an individual app. Its `components.json`, Tailwind source scanning, CSS variables, and shadcn-compatible aliases keep generated components shared.
+
+## CI and releases
+
+The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. The release workflow repeats the same gates on `main` before Semantic Release publishes `packages/cli` under the existing npm package name. The browser-neutral migration core is bundled into the CLI artifact, so the published command remains self-contained.
+
+## Documentation
+
+- [Migration command reference](docs/migrate-command.md)
+- [Structured and unstructured CloudEvents](docs/structured-vs-unstructured.md)
 
 ## License
 
