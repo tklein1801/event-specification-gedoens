@@ -24,8 +24,9 @@ This action expects an AsyncAPI 2.x document and applies the following changes:
 5. Reuses existing `operationId` values as operation keys. Missing or duplicate identifiers are generated deterministically and without collisions.
 6. Moves operation messages to `channels.<name>.messages` and references them from the operation. Special characters in JSON Pointers are escaped.
 7. Converts each local message to a structured CloudEvent envelope:
-   - CloudEvent attributes from `headers` and referenced message traits become `payload.properties`.
-   - The previous business payload becomes `payload.properties.data`.
+   - The message payload becomes a reference to a schema in `components.schemas`.
+   - CloudEvent attributes from `headers` and referenced message traits become properties of that schema.
+   - The previous business payload becomes the schema's `properties.data`; local schema references are resolved there.
    - `specversion`, `id`, `source`, `type`, and `data` become required fields.
    - `contentType` becomes `application/cloudevents+json`.
    - Examples with separate `headers` and `payload` values become a single structured payload.
@@ -43,7 +44,10 @@ This action expects an AsyncAPI 3.x document and applies the following changes:
 5. Stores the top-level operation key as `operationId`.
 6. Uses explicitly referenced operation messages. If an operation has no message list, it uses all messages from the referenced channel; multiple messages become `oneOf`.
 7. Converts each local structured CloudEvent message to unstructured mode:
-   - `payload.properties.data` becomes the business payload.
+   - The referenced CloudEvent schema is reduced to its `properties.data` business schema, removing the CloudEvent attributes from the payload schema.
+   - The message keeps a shallow payload reference to the resulting schema instead of embedding a deeply nested schema.
+   - CloudEvent header schemas are collected in `components.messageTraits.CloudEventContext` and referenced by every migrated message.
+   - Message-specific header constraints remain available on the message itself.
    - The remaining envelope fields become the header schema.
    - `datacontenttype.const` or `datacontenttype.default` determines the message `contentType`; the fallback is `application/json`.
    - Structured examples are split into `headers` and `payload` values.

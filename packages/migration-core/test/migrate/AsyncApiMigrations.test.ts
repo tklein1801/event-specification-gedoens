@@ -66,19 +66,7 @@ describe('AsyncAPI migrations', () => {
           InlineOrderChanged: {
             name: 'InlineOrderChanged',
             contentType: 'application/cloudevents+json',
-            payload: {
-              type: 'object',
-              required: ['specversion', 'id', 'source', 'type', 'data'],
-              properties: {
-                specversion: { type: 'string', const: '1.0' },
-                id: { type: 'string' },
-                source: { type: 'string', format: 'uri-reference' },
-                type: { type: 'string' },
-                time: { type: 'string', format: 'date-time' },
-                datacontenttype: { type: 'string', const: 'application/json' },
-                data: { type: 'object' },
-              },
-            },
+            payload: { $ref: '#/components/schemas/InlineOrderChanged' },
           },
         },
       },
@@ -103,12 +91,20 @@ describe('AsyncAPI migrations', () => {
       messages: {
         OrderCreated: {
           contentType: 'application/cloudevents+json',
-          payload: {
-            properties: { data: { $ref: '#/components/schemas/Order' } },
-          },
+          payload: { $ref: '#/components/schemas/Order' },
         },
       },
-      schemas: { Order: { type: 'object' } },
+      schemas: {
+        Order: {
+          properties: {
+            type: { const: 'order.created' },
+            data: { type: 'object' },
+          },
+        },
+        InlineOrderChanged: {
+          properties: { data: { type: 'object' } },
+        },
+      },
     });
     expect(migrated.components).not.toHaveProperty('messageTraits');
   });
@@ -185,6 +181,7 @@ describe('AsyncAPI migrations', () => {
                 contentType: 'application/json',
                 headers: unstructuredHeaders(),
                 payload: { $ref: '#/components/schemas/OrderChanged' },
+                traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
               },
             ],
           },
@@ -196,6 +193,139 @@ describe('AsyncAPI migrations', () => {
         OrderCreated: {
           headers: unstructuredHeaders(),
           payload: { $ref: '#/components/schemas/OrderCreated' },
+          traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
+        },
+      },
+      messageTraits: {
+        CloudEventContext: {
+          headers: unstructuredHeaders(),
+        },
+      },
+    });
+  });
+
+  it('resolves referenced business schemas into structured schema components', () => {
+    const migrated = new ToStructuredAsyncApiMigration().migrate({
+      asyncapi: '2.6.0',
+      components: {
+        messages: {
+          OrderCreated: {
+            headers: { properties: { type: { const: 'order.created' } } },
+            payload: { $ref: '#/components/schemas/Order' },
+          },
+        },
+        schemas: {
+          Order: {
+            type: 'object',
+            properties: { customer: { $ref: '#/components/schemas/Customer' } },
+          },
+          Customer: { type: 'object', properties: { id: { type: 'string' } } },
+        },
+      },
+    });
+
+    expect(migrated.components?.messages).toMatchObject({
+      OrderCreated: { payload: { $ref: '#/components/schemas/Order' } },
+    });
+    expect(migrated.components?.schemas).toMatchObject({
+      Order: {
+        properties: {
+          type: { const: 'order.created' },
+          data: {
+            type: 'object',
+            properties: {
+              customer: { type: 'object', properties: { id: { type: 'string' } } },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('removes CloudEvent fields from referenced schemas in unstructured mode', () => {
+    const migrated = new ToUnstructuredAsyncApiMigration().migrate({
+      asyncapi: '3.0.0',
+      components: {
+        messages: {
+          OrderCreated: { payload: { $ref: '#/components/schemas/OrderCreated' } },
+        },
+        schemas: {
+          OrderCreated: {
+            type: 'object',
+            required: ['specversion', 'id', 'source', 'type', 'data'],
+            properties: {
+              specversion: { type: 'string', const: '1.0' },
+              id: { type: 'string' },
+              source: { type: 'string' },
+              type: { type: 'string', const: 'order.created' },
+              data: {
+                type: 'object',
+                properties: { orderId: { type: 'string' } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(migrated.components?.messages).toMatchObject({
+      OrderCreated: {
+        headers: { properties: { type: { const: 'order.created' } } },
+        payload: { $ref: '#/components/schemas/OrderCreated' },
+        traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
+      },
+    });
+    expect(migrated.components?.messageTraits).toMatchObject({
+      CloudEventContext: {
+        headers: {
+          required: ['specversion', 'id', 'source', 'type'],
+          properties: {
+            specversion: { const: '1.0' },
+            id: { type: 'string' },
+            source: { type: 'string' },
+            type: { const: 'order.created' },
+          },
+        },
+      },
+    });
+    expect(migrated.components?.schemas).toEqual({
+      OrderCreated: {
+        type: 'object',
+        properties: { orderId: { type: 'string' } },
+      },
+    });
+  });
+
+  it('recreates a shared CloudEvent message trait for multiple messages', () => {
+    const migrated = new ToUnstructuredAsyncApiMigration().migrate({
+      asyncapi: '3.0.0',
+      components: {
+        messages: {
+          Created: { payload: { $ref: '#/components/schemas/Created' } },
+          Changed: { payload: { $ref: '#/components/schemas/Changed' } },
+        },
+        schemas: {
+          Created: structuredPayloadWithType('order.created'),
+          Changed: structuredPayloadWithType('order.changed'),
+        },
+      },
+    });
+
+    expect(migrated.components?.messages).toMatchObject({
+      Created: { traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }] },
+      Changed: { traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }] },
+    });
+    expect(migrated.components?.messageTraits).toMatchObject({
+      CloudEventContext: {
+        headers: {
+          required: ['specversion', 'id', 'source', 'type'],
+          properties: {
+            specversion: { type: 'string', const: '1.0' },
+            id: { type: 'string' },
+            source: { type: 'string' },
+            type: { type: 'string' },
+            subject: { type: 'string' },
+          },
         },
       },
     });
@@ -234,6 +364,21 @@ function unstructuredHeaders() {
       id: { type: 'string' },
       source: { type: 'string' },
       type: { type: 'string' },
+    },
+  };
+}
+
+function structuredPayloadWithType(type: string) {
+  return {
+    type: 'object',
+    required: ['specversion', 'id', 'source', 'type', 'data'],
+    properties: {
+      specversion: { type: 'string', const: '1.0' },
+      id: { type: 'string' },
+      source: { type: 'string' },
+      type: { type: 'string', const: type },
+      subject: { type: 'string' },
+      data: { type: 'object' },
     },
   };
 }

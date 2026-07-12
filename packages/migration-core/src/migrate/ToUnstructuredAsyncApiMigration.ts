@@ -3,6 +3,7 @@ import type { AsyncApiDocument } from '../AsyncApiSpecification';
 import type { AsyncApiMigration } from './AsyncApiMigration';
 import { AsyncApiDocumentNavigator, type JsonObject } from './AsyncApiDocumentNavigator';
 import { CloudEventMessageMigrator } from './CloudEventMessageMigrator';
+import { CloudEventSchemaMigrator } from './CloudEventSchemaMigrator';
 
 type LegacyOperation = 'subscribe' | 'publish';
 
@@ -19,6 +20,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
 
     const navigator = new AsyncApiDocumentNavigator(document);
     const messageMigrator = new CloudEventMessageMigrator(navigator);
+    const schemaMigrator = new CloudEventSchemaMigrator(document, navigator, messageMigrator);
     const channels: Record<string, JsonObject> = {};
     const channelContexts = new Map<string, ChannelContext>();
 
@@ -56,7 +58,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
         channels,
         channelContexts,
         navigator,
-        messageMigrator,
+        schemaMigrator,
       );
     }
 
@@ -66,7 +68,9 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
       'operations',
       'components',
     ]);
-    const migratedComponents = this.migrateComponents(components, messageMigrator);
+    const migratedComponents = schemaMigrator.withSchemas(
+      this.migrateComponents(components, schemaMigrator),
+    );
 
     return {
       ...structuredClone(documentFields),
@@ -82,7 +86,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
     channels: Record<string, JsonObject>,
     channelContexts: Map<string, ChannelContext>,
     navigator: AsyncApiDocumentNavigator,
-    messageMigrator: CloudEventMessageMigrator,
+    schemaMigrator: CloudEventSchemaMigrator,
   ): void {
     const legacyOperation = this.legacyOperation(operation.action, operationName);
     const channelName = this.channelName(operation.channel);
@@ -115,7 +119,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
       ? operationMessages
       : Object.values(context.messages);
     const messages = selectedMessages.map((message) =>
-      this.toLegacyMessage(message, navigator, messageMigrator),
+      this.toLegacyMessage(message, navigator, schemaMigrator),
     );
 
     channel[legacyOperation] = {
@@ -132,7 +136,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
   private toLegacyMessage(
     message: unknown,
     navigator: AsyncApiDocumentNavigator,
-    messageMigrator: CloudEventMessageMigrator,
+    schemaMigrator: CloudEventSchemaMigrator,
   ): JsonObject {
     if (!AsyncApiDocumentNavigator.isObject(message)) {
       throw new InvalidAsyncApiSpecification('An operation message must be an object.');
@@ -153,15 +157,21 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
         return structuredClone(resolved);
       }
 
-      return messageMigrator.toUnstructured(resolved);
+      return schemaMigrator.toUnstructured(
+        resolved,
+        AsyncApiDocumentNavigator.referenceName(message.$ref),
+      );
     }
 
-    return messageMigrator.toUnstructured(message);
+    return schemaMigrator.toUnstructured(
+      message,
+      typeof message.name === 'string' ? message.name : undefined,
+    );
   }
 
   private migrateComponents(
     components: AsyncApiDocument['components'],
-    messageMigrator: CloudEventMessageMigrator,
+    schemaMigrator: CloudEventSchemaMigrator,
   ): JsonObject | undefined {
     if (components === undefined) return undefined;
 
@@ -181,7 +191,7 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
           name,
           typeof message.$ref === 'string'
             ? structuredClone(message)
-            : messageMigrator.toUnstructured(message),
+            : schemaMigrator.toUnstructured(message, name),
         ];
       }),
     );

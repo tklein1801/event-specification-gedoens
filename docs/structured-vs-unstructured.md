@@ -42,33 +42,49 @@ headers:
       type: string
 payload:
   $ref: '#/components/schemas/OrderCreated'
+traits:
+  - $ref: '#/components/messageTraits/CloudEventContext'
 ```
+
+The shared `CloudEventContext` message trait contains the reusable CloudEvent header schema. Individual messages may additionally retain constraints such as their concrete event `type`.
 
 The equivalent structured message places both parts in one envelope:
 
 ```yaml
 contentType: application/cloudevents+json
 payload:
-  type: object
-  required: [specversion, id, source, type, data]
-  properties:
-    specversion:
-      type: string
-      const: '1.0'
-    id:
-      type: string
-    source:
-      type: string
-    type:
-      type: string
-    time:
-      type: string
-      format: date-time
-    datacontenttype:
-      type: string
-      const: application/json
-    data:
-      $ref: '#/components/schemas/OrderCreated'
+  $ref: '#/components/schemas/OrderCreated'
+```
+
+The referenced schema contains the envelope and the resolved business schema:
+
+```yaml
+components:
+  schemas:
+    OrderCreated:
+      type: object
+      required: [specversion, id, source, type, data]
+      properties:
+        specversion:
+          type: string
+          const: '1.0'
+        id:
+          type: string
+        source:
+          type: string
+        type:
+          type: string
+        time:
+          type: string
+          format: date-time
+        datacontenttype:
+          type: string
+          const: application/json
+        data:
+          type: object
+          properties:
+            orderId:
+              type: string
 ```
 
 ## AsyncAPI document structure
