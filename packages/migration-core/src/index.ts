@@ -3,6 +3,7 @@ export * from './AsyncApiSpecification';
 export * from './CustomError';
 export * from './InvalidAsyncApiSpecification';
 export * from './migrateAsyncApi';
+export * from './migrateJsonAsyncApi';
 export * from './migrate/AsyncApiMigration';
 export * from './migrate/AsyncApiMigrationFactory';
 export * from './migrate/ToStructuredAsyncApiMigration';

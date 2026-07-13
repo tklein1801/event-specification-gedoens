@@ -141,8 +141,14 @@ describe('AsyncAPI migration app', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Provide an AsyncAPI specification');
   });
 
-  it('migrates pasted YAML with the shared core and displays formatted output', async () => {
+  it('offers YAML and JSON input and migrates pasted YAML', async () => {
     render(<App />);
+
+    expect(screen.getByText('AsyncAPI YAML or JSON')).toBeInTheDocument();
+    expect(screen.getByLabelText('Upload AsyncAPI file')).toHaveAttribute(
+      'accept',
+      '.json,.yaml,.yml,application/json,application/yaml,text/yaml',
+    );
     fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
       target: { value: 'asyncapi: 2.6.0\ninfo:\n  title: Orders\n  version: 1.0.0' },
     });
@@ -151,6 +157,30 @@ describe('AsyncAPI migration app', () => {
     await waitFor(() => {
       const output = screen.getByLabelText<HTMLTextAreaElement>('Migrated AsyncAPI result');
       expect(output.value).toContain('asyncapi: 3.0.0');
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Migration complete');
+  });
+
+  it('migrates JSON containing duplicate schema keys and retains the last value', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: {
+        value: `{
+          "asyncapi": "2.6.0",
+          "components": {
+            "schemas": {
+              "Order": { "type": "string" },
+              "Order": { "type": "object" }
+            }
+          }
+        }`,
+      },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+
+    await waitFor(() => {
+      const output = screen.getByLabelText<HTMLTextAreaElement>('Migrated AsyncAPI result');
+      expect(JSON.parse(output.value).components.schemas.Order).toEqual({ type: 'object' });
     });
     expect(screen.getByRole('status')).toHaveTextContent('Migration complete');
   });
@@ -169,6 +199,23 @@ describe('AsyncAPI migration app', () => {
     expect(await screen.findByText('Loaded orders.json')).toBeInTheDocument();
     expect(screen.getByLabelText('AsyncAPI source')).toHaveValue('{"asyncapi":"2.6.0"}');
     expect(screen.getByRole('status')).toHaveTextContent('orders.json was uploaded successfully.');
+  });
+
+  it('loads a local YAML file into the editor', async () => {
+    render(<App />);
+    const content = 'asyncapi: 2.6.0';
+    const file = new File([content], 'orders.yaml', {
+      type: 'application/yaml',
+    });
+    Object.defineProperty(file, 'text', {
+      value: vi.fn().mockResolvedValue(content),
+    });
+
+    await userEvent.upload(screen.getByLabelText('Upload AsyncAPI file'), file);
+
+    expect(await screen.findByText('Loaded orders.yaml')).toBeInTheDocument();
+    expect(screen.getByLabelText('AsyncAPI source')).toHaveValue(content);
+    expect(screen.getByRole('status')).toHaveTextContent('orders.yaml was uploaded successfully.');
   });
 
   it('shows migration errors from invalid input', async () => {

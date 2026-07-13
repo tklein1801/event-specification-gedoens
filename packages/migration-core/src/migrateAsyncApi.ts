@@ -12,25 +12,35 @@ export interface MigratedAsyncApiText {
   format: SpecificationFormat;
 }
 
+function requireInput(input: string): string {
+  if (input.trim().length === 0) {
+    throw new InvalidAsyncApiSpecification(
+      'Provide an AsyncAPI specification before starting the migration.',
+      'EMPTY_INPUT',
+    );
+  }
+
+  return input;
+}
+
 export function parseAsyncApi(input: string | object): AsyncApiDocument {
   let value: unknown = input;
 
   if (typeof input === 'string') {
-    if (input.trim().length === 0) {
-      throw new InvalidAsyncApiSpecification(
-        'Provide an AsyncAPI specification before starting the migration.',
-        'EMPTY_INPUT',
-      );
-    }
+    requireInput(input);
 
     try {
-      value = parse(input);
-    } catch (error) {
-      throw new InvalidAsyncApiSpecification(
-        'The input does not contain valid JSON or YAML.',
-        'INVALID_SYNTAX',
-        { cause: error },
-      );
+      value = JSON.parse(input);
+    } catch {
+      try {
+        value = parse(input);
+      } catch (error) {
+        throw new InvalidAsyncApiSpecification(
+          'The input does not contain valid JSON or YAML.',
+          'INVALID_SYNTAX',
+          { cause: error },
+        );
+      }
     }
   }
 

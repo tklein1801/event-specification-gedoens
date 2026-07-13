@@ -53,7 +53,7 @@ npm run build --workspace @tklein1801/esg-cli
 
 Start the local application with `npm run dev` and open the Vite URL shown in the terminal. The responsive two-column interface supports:
 
-- pasted JSON or YAML;
+- pasted JSON or YAML; duplicate JSON object keys are accepted and the last value is retained;
 - `.json`, `.yaml`, and `.yml` file uploads;
 - both migration directions;
 - validation, loading, success, and error states;

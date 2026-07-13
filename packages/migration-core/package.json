@@ -11,14 +11,20 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs",
       "default": "./dist/index.js"
+    },
+    "./json": {
+      "types": "./dist/json.d.ts",
+      "import": "./dist/json.js",
+      "require": "./dist/json.cjs",
+      "default": "./dist/json.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
+    "build": "tsup src/index.ts src/json.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts src/json.ts --format esm,cjs --dts --sourcemap --watch",
     "test": "vitest run",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix",

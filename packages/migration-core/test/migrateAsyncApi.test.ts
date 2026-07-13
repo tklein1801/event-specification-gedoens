@@ -3,13 +3,32 @@ import {
   InvalidAsyncApiSpecification,
   migrateAsyncApi,
   migrateAsyncApiText,
+  migrateJsonAsyncApi,
   parseAsyncApi,
+  parseJsonAsyncApi,
 } from '../src';
 
 describe('migration-core public API', () => {
   it('accepts a JSON string and returns a migrated document', () => {
     const result = migrateAsyncApi('{"asyncapi":"2.6.0"}', 'to-structured');
     expect(result.asyncapi).toBe('3.0.0');
+  });
+
+  it('keeps the last value when a JSON object contains duplicate schema keys', () => {
+    const source = `{
+      "asyncapi": "2.6.0",
+      "components": {
+        "schemas": {
+          "Order": { "type": "string" },
+          "Order": { "type": "object" }
+        }
+      }
+    }`;
+
+    expect(parseJsonAsyncApi(source).components?.schemas).toEqual({
+      Order: { type: 'object' },
+    });
+    expect(migrateJsonAsyncApi(source, 'to-structured').asyncapi).toBe('3.0.0');
   });
 
   it('accepts a YAML string and returns formatted YAML', () => {
