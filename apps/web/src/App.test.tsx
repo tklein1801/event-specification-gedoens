@@ -148,6 +148,54 @@ describe('AsyncAPI migration app', () => {
     expect(screen.getByRole('button', { name: 'Open specification info' })).toBeInTheDocument();
   });
 
+  it('copies a migrated event with its deeply resolved payload schema', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: {
+        value: JSON.stringify({
+          asyncapi: '2.6.0',
+          channels: {
+            orders: {
+              subscribe: { message: { $ref: '#/components/messages/OrderCreated' } },
+            },
+          },
+          components: {
+            messages: {
+              OrderCreated: {
+                name: 'OrderCreated',
+                payload: { $ref: '#/components/schemas/Order' },
+              },
+            },
+            schemas: {
+              Order: {
+                type: 'object',
+                properties: { customer: { $ref: '#/components/schemas/Customer' } },
+              },
+              Customer: { type: 'object', properties: { id: { type: 'string' } } },
+            },
+          },
+        }),
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+    await userEvent.click(screen.getByRole('button', { name: 'Open specification info' }));
+    const infoCard = screen.getByLabelText('Specification information');
+    await userEvent.click(within(infoCard).getByRole('tab', { name: /target/i }));
+    await userEvent.click(
+      within(infoCard).getByRole('button', { name: 'Copy event OrderCreated' }),
+    );
+
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+      expect.not.stringContaining('$ref'),
+    );
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+      expect.stringContaining('"customer"'),
+    );
+    expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(expect.stringContaining('"id"'));
+  });
+
   it('validates an empty input', async () => {
     render(<App />);
     await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
@@ -182,6 +230,9 @@ describe('AsyncAPI migration app', () => {
         value: `{
           "asyncapi": "2.6.0",
           "components": {
+            "messages": {
+              "OrderMessage": { "payload": { "$ref": "#/components/schemas/Order" } }
+            },
             "schemas": {
               "Order": { "type": "string" },
               "Order": { "type": "object" }
@@ -194,7 +245,9 @@ describe('AsyncAPI migration app', () => {
 
     await waitFor(() => {
       const output = screen.getByLabelText<HTMLTextAreaElement>('Migrated AsyncAPI result');
-      expect(JSON.parse(output.value).components.schemas.Order).toEqual({ type: 'object' });
+      expect(JSON.parse(output.value).components.schemas.Order.properties.data).toEqual({
+        type: 'object',
+      });
     });
     expect(screen.getByRole('status')).toHaveTextContent('Migration complete');
   });

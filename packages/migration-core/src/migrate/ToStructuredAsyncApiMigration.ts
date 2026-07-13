@@ -48,8 +48,21 @@ export class ToStructuredAsyncApiMigration implements AsyncApiMigration {
       'operations',
       'components',
     ]);
+    const migratedComponentFields = this.migrateComponents(components, schemaMigrator);
+    const referencedSchemaNames = this.collectSchemaReferenceNames({
+      ...structuredClone(documentFields),
+      ...(Object.keys(channels).length > 0 ? { channels } : {}),
+      ...(Object.keys(operations).length > 0 ? { operations } : {}),
+      ...(migratedComponentFields === undefined
+        ? {}
+        : {
+            components: AsyncApiDocumentNavigator.omit(migratedComponentFields, ['schemas']),
+          }),
+    });
     const migratedComponents = schemaMigrator.withSchemas(
-      this.migrateComponents(components, schemaMigrator),
+      migratedComponentFields,
+      true,
+      referencedSchemaNames,
     );
 
     return {
@@ -59,6 +72,34 @@ export class ToStructuredAsyncApiMigration implements AsyncApiMigration {
       ...(Object.keys(operations).length > 0 ? { operations } : {}),
       ...(migratedComponents === undefined ? {} : { components: migratedComponents }),
     };
+  }
+
+  private collectSchemaReferenceNames(value: unknown): Set<string> {
+    const references = new Set<string>();
+    const visited = new Set<object>();
+    const prefix = '#/components/schemas/';
+
+    const visit = (candidate: unknown): void => {
+      if (Array.isArray(candidate)) {
+        if (visited.has(candidate)) return;
+        visited.add(candidate);
+        candidate.forEach(visit);
+        return;
+      }
+      if (!AsyncApiDocumentNavigator.isObject(candidate) || visited.has(candidate)) return;
+      visited.add(candidate);
+
+      if (typeof candidate.$ref === 'string' && candidate.$ref.startsWith(prefix)) {
+        const segment = candidate.$ref.slice(prefix.length).split('/')[0];
+        if (segment !== undefined && segment.length > 0) {
+          references.add(decodeURIComponent(segment).replaceAll('~1', '/').replaceAll('~0', '~'));
+        }
+      }
+      Object.values(candidate).forEach(visit);
+    };
+
+    visit(value);
+    return references;
   }
 
   private migrateChannel(

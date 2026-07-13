@@ -99,17 +99,17 @@ function findEventValue(
     (message) =>
       message.name === event.name || (isRecord(message.value) && message.value.name === event.name),
   );
-  if (component) return component.value;
+  if (component) return resolveReferencesDeep(document, component.value);
 
   const inlineMessage = findNamedObject(document, event.name);
-  if (inlineMessage) return inlineMessage;
+  if (inlineMessage) return resolveReferencesDeep(document, inlineMessage);
 
   const channel = document.channels?.[event.name];
   if (isRecord(channel)) {
     const operationName = event.direction === 'published' ? 'subscribe' : 'publish';
     const operation = channel[operationName];
     if (isRecord(operation) && operation.message !== undefined) {
-      return resolveReference(document, operation.message);
+      return resolveReferencesDeep(document, operation.message);
     }
   }
 
@@ -151,6 +151,40 @@ function resolveReference(document: AsyncApiDocument, value: unknown): unknown {
       (current, segment) => (isRecord(current) ? current[segment] : undefined),
       document,
     );
+}
+
+function resolveReferencesDeep(
+  document: AsyncApiDocument,
+  value: unknown,
+  resolving = new Set<string>(),
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveReferencesDeep(document, item, resolving));
+  }
+  if (!isRecord(value)) return value;
+
+  if (typeof value.$ref === 'string' && value.$ref.startsWith('#/')) {
+    if (resolving.has(value.$ref)) return value;
+
+    const resolved = resolveReference(document, value);
+    if (resolved === undefined) return value;
+
+    const nextResolving = new Set(resolving).add(value.$ref);
+    const resolvedValue = resolveReferencesDeep(document, resolved, nextResolving);
+    const siblings = Object.fromEntries(Object.entries(value).filter(([key]) => key !== '$ref'));
+    const resolvedSiblings = resolveReferencesDeep(document, siblings, nextResolving);
+
+    return isRecord(resolvedValue) && isRecord(resolvedSiblings)
+      ? { ...resolvedValue, ...resolvedSiblings }
+      : resolvedValue;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [
+      key,
+      resolveReferencesDeep(document, child, resolving),
+    ]),
+  );
 }
 
 function InfoSection({

@@ -4,9 +4,9 @@ import { AsyncApiDocumentNavigator, type JsonObject } from './AsyncApiDocumentNa
 import { CloudEventMessageMigrator } from './CloudEventMessageMigrator';
 
 /**
- * Keeps CloudEvent envelopes in components.schemas instead of embedding complex
- * schemas in message payloads. The source navigator deliberately continues to
- * point at the unmodified input document while the target schema map is built.
+ * Keeps self-contained CloudEvent envelopes in components.schemas and lets
+ * messages reference them. The source navigator deliberately continues to point
+ * at the unmodified input document while the target schema map is built.
  */
 export class CloudEventSchemaMigrator {
   private readonly schemas: Record<string, unknown>;
@@ -41,18 +41,14 @@ export class CloudEventSchemaMigrator {
   toStructured(message: JsonObject, preferredSchemaName?: string): JsonObject {
     const migrated = this.messageMigrator.toStructured(message);
     const envelope = this.requireObject(migrated.payload, 'A structured message payload');
-    const properties = this.requireObject(
-      envelope.properties,
-      'A structured message payload properties value',
-    );
     const referencedName = this.localSchemaName(message.payload);
     const schemaName = this.claimSchemaName(referencedName, preferredSchemaName);
-    const resolvedData = this.resolveSchemaReferences(message.payload ?? {});
+    const resolvedEnvelope = this.requireObject(
+      this.resolveSchemaReferences(envelope),
+      'A resolved structured message payload',
+    );
 
-    this.schemas[schemaName] = {
-      ...envelope,
-      properties: { ...properties, data: resolvedData },
-    };
+    this.schemas[schemaName] = structuredClone(resolvedEnvelope);
 
     return {
       ...migrated,
@@ -85,9 +81,23 @@ export class CloudEventSchemaMigrator {
     };
   }
 
-  withSchemas(components: JsonObject | undefined): JsonObject | undefined {
+  withSchemas(
+    components: JsonObject | undefined,
+    resolveReferences = false,
+    retainedSchemaNames?: ReadonlySet<string>,
+  ): JsonObject | undefined {
     const result = { ...(components ?? {}) };
-    if (Object.keys(this.schemas).length > 0) result.schemas = this.schemas;
+    delete result.schemas;
+    const schemaEntries = Object.entries(this.schemas).filter(
+      ([name]) => retainedSchemaNames === undefined || retainedSchemaNames.has(name),
+    );
+    if (schemaEntries.length > 0) {
+      result.schemas = resolveReferences
+        ? Object.fromEntries(
+            schemaEntries.map(([name, schema]) => [name, this.resolveSchemaReferences(schema)]),
+          )
+        : Object.fromEntries(schemaEntries);
+    }
     if (this.hasUnstructuredMessages) {
       result.messageTraits = {
         ...this.messageTraits,
@@ -177,8 +187,17 @@ export class CloudEventSchemaMigrator {
     }
     if (!AsyncApiDocumentNavigator.isObject(value)) return structuredClone(value);
 
-    if (typeof value.$ref === 'string' && value.$ref.startsWith('#/components/schemas/')) {
-      if (resolving.has(value.$ref)) return structuredClone(value);
+    if (typeof value.$ref === 'string') {
+      if (!value.$ref.startsWith('#/')) {
+        throw new InvalidAsyncApiSpecification(
+          `Schema reference '${value.$ref}' cannot be resolved locally.`,
+        );
+      }
+      if (resolving.has(value.$ref)) {
+        throw new InvalidAsyncApiSpecification(
+          `Circular schema reference '${value.$ref}' cannot be fully resolved.`,
+        );
+      }
       const resolved = this.navigator.resolve(value);
       if (resolved === undefined) {
         throw new InvalidAsyncApiSpecification(

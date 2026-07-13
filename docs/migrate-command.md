@@ -24,12 +24,13 @@ This action expects an AsyncAPI 2.x document and applies the following changes:
 5. Reuses existing `operationId` values as operation keys. Missing or duplicate identifiers are generated deterministically and without collisions.
 6. Moves operation messages to `channels.<name>.messages` and references them from the operation. Special characters in JSON Pointers are escaped.
 7. Converts each local message to a structured CloudEvent envelope:
-   - The message payload becomes a reference to a schema in `components.schemas`.
+   - The message payload references its schema in `components.schemas`, avoiding duplicate schema definitions.
    - CloudEvent attributes from `headers` and referenced message traits become properties of that schema.
-   - The previous business payload becomes the schema's `properties.data`; local schema references are resolved there.
+   - The previous business payload becomes the schema's `properties.data`; local schema references are resolved recursively throughout `components.schemas`.
    - `specversion`, `id`, `source`, `type`, and `data` become required fields.
    - `contentType` becomes `application/cloudevents+json`.
    - Examples with separate `headers` and `payload` values become a single structured payload.
+   - Schema components that are no longer referenced after recursive expansion are removed.
 8. Removes migrated header traits from `components.messageTraits`. Other trait content remains attached to its message.
 9. Preserves other document, channel, operation, message, and component fields.
 
@@ -63,5 +64,6 @@ The migration fails without changing the target file when, among other cases:
 - Multiple logical channels use the same `address`.
 - Multiple operations map to the same AsyncAPI 2 operation direction on one channel.
 - A structured message does not define `payload.properties.data`.
+- A structured target payload contains an external or circular schema reference that cannot be expanded into a finite, self-contained schema.
 
 Transport and binding fields are preserved but are not rewritten for a specific protocol. Review server definitions and less common AsyncAPI 3 constructs, such as operation replies, after migration.

@@ -56,7 +56,7 @@ payload:
   $ref: '#/components/schemas/OrderCreated'
 ```
 
-The referenced schema contains the envelope and the resolved business schema:
+The referenced component schema contains the complete envelope and the deeply resolved business schema. The web application resolves the message reference when an Event is copied:
 
 ```yaml
 components:

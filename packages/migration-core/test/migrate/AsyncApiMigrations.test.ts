@@ -219,7 +219,14 @@ describe('AsyncAPI migrations', () => {
             type: 'object',
             properties: { customer: { $ref: '#/components/schemas/Customer' } },
           },
-          Customer: { type: 'object', properties: { id: { type: 'string' } } },
+          Customer: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              address: { $ref: '#/components/schemas/Address' },
+            },
+          },
+          Address: { type: 'object', properties: { city: { type: 'string' } } },
         },
       },
     });
@@ -234,12 +241,59 @@ describe('AsyncAPI migrations', () => {
           data: {
             type: 'object',
             properties: {
-              customer: { type: 'object', properties: { id: { type: 'string' } } },
+              customer: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  address: {
+                    type: 'object',
+                    properties: { city: { type: 'string' } },
+                  },
+                },
+              },
             },
           },
         },
       },
     });
+    expect(JSON.stringify(migrated.components?.schemas)).not.toContain('$ref');
+    expect(Object.keys(migrated.components?.schemas ?? {})).toEqual(['Order']);
+  });
+
+  it('rejects circular business schema references instead of retaining a reference', () => {
+    expect(() =>
+      new ToStructuredAsyncApiMigration().migrate({
+        asyncapi: '2.6.0',
+        components: {
+          messages: {
+            TreeChanged: {
+              payload: { $ref: '#/components/schemas/TreeNode' },
+            },
+          },
+          schemas: {
+            TreeNode: {
+              type: 'object',
+              properties: { child: { $ref: '#/components/schemas/TreeNode' } },
+            },
+          },
+        },
+      }),
+    ).toThrow(
+      "Circular schema reference '#/components/schemas/TreeNode' cannot be fully resolved.",
+    );
+  });
+
+  it('removes the schemas component when none of its schemas are referenced', () => {
+    const migrated = new ToStructuredAsyncApiMigration().migrate({
+      asyncapi: '2.6.0',
+      components: {
+        schemas: {
+          Unused: { type: 'object' },
+        },
+      },
+    });
+
+    expect(migrated.components).toBeUndefined();
   });
 
   it('removes CloudEvent fields from referenced schemas in unstructured mode', () => {
