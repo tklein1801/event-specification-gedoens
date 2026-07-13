@@ -2,7 +2,6 @@ import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import {
   InvalidAsyncApiSpecification,
   migrateAsyncApiText,
-  type MigrationAction,
   type SpecificationFormat,
 } from '@event-specification-gedoens/migration-core';
 import {
@@ -44,7 +43,6 @@ export function App() {
   const [input, setInput] = useState('');
   const [output, setOutput] = useState('');
   const [outputFormat, setOutputFormat] = useState<SpecificationFormat>('yaml');
-  const [action, setAction] = useState<MigrationAction>('to-structured');
   const [fileName, setFileName] = useState<string>();
   const [status, setStatus] = useState<Status>({ kind: 'idle' });
   const [copied, setCopied] = useState(false);
@@ -116,7 +114,7 @@ export function App() {
     await Promise.resolve();
 
     try {
-      const result = migrateAsyncApiText(input, action);
+      const result = migrateAsyncApiText(input, 'to-structured');
       setOutput(result.content);
       setOutputFormat(result.format);
       setStatus({
@@ -171,7 +169,7 @@ export function App() {
             AsyncAPI Migration Studio
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Move CloudEvents between structured and unstructured mode.
+            Migrate CloudEvents to structured mode.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
             Paste YAML or JSON, or choose a local specification. Everything runs in this browser;
@@ -199,13 +197,19 @@ export function App() {
           <Label htmlFor="migration-action">Migration direction</Label>
           <select
             id="migration-action"
-            className="mt-2 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm shadow-sm outline-none focus:ring-2 focus:ring-ring"
-            value={action}
-            onChange={(event) => setAction(event.target.value as MigrationAction)}
+            className="mt-2 h-10 w-full rounded-lg border border-input bg-muted px-3 text-sm text-muted-foreground shadow-sm disabled:cursor-not-allowed"
+            defaultValue="to-structured"
+            aria-describedby="migration-action-note"
+            disabled
           >
             <option value="to-structured">AsyncAPI 2.x → 3.x · structured</option>
-            <option value="to-unstructured">AsyncAPI 3.x → 2.x · unstructured</option>
+            <option value="to-unstructured" disabled>
+              AsyncAPI 3.x → 2.x · unstructured (temporarily unavailable)
+            </option>
           </select>
+          <p id="migration-action-note" className="mt-2 text-xs text-muted-foreground">
+            Structured → unstructured migration is temporarily disabled.
+          </p>
         </div>
         <Button size="lg" onClick={() => void migrate()} disabled={status.kind === 'loading'}>
           {status.kind === 'loading' ? (
