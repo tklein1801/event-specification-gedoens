@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import packageJson from '../package.json';
 import { SpecificationInfo } from './SpecificationInfo';
+import { StudioPage } from './StudioPage';
 
 type Status =
   | { kind: 'idle' }
@@ -54,7 +55,21 @@ export function App() {
     if (storedTheme) return storedTheme === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  const [page, setPage] = useState<'migration' | 'studio'>(() =>
+    window.location.hash === '#studio' ? 'studio' : 'migration',
+  );
   const fileInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onHashChange = () => setPage(window.location.hash === '#studio' ? 'studio' : 'migration');
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  function navigate(nextPage: 'migration' | 'studio') {
+    window.location.hash = nextPage === 'studio' ? 'studio' : '';
+    setPage(nextPage);
+  }
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', darkMode);
@@ -162,10 +177,38 @@ export function App() {
     setStatus({ kind: 'success', message: `${label} copied to the clipboard.` });
   }
 
+  if (page === 'studio') {
+    return (
+      <StudioPage
+        darkMode={darkMode}
+        onToggleDarkMode={() => setDarkMode((current) => !current)}
+        onNavigate={navigate}
+      />
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-4 py-8 sm:px-6 lg:px-10">
       <header className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
         <div className="max-w-3xl">
+          <nav
+            className="mb-5 flex w-fit items-center gap-1 rounded-xl border bg-card/70 p-1 text-sm shadow-sm"
+            aria-label="Main navigation"
+          >
+            <button
+              className="rounded-lg bg-primary px-3 py-1.5 font-medium text-primary-foreground"
+              aria-current="page"
+              onClick={() => navigate('migration')}
+            >
+              Migration
+            </button>
+            <button
+              className="rounded-lg px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => navigate('studio')}
+            >
+              Studio
+            </button>
+          </nav>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border bg-card/80 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
             <Sparkles className="size-3.5" aria-hidden="true" />
             AsyncAPI Migration Studio
