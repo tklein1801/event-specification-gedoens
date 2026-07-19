@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import packageJson from '../package.json';
 import { App } from './App';
 
 describe('AsyncAPI migration app', () => {
@@ -58,7 +59,9 @@ describe('AsyncAPI migration app', () => {
       'href',
       'https://github.com/tklein1801/event-specification-gedoens',
     );
-    expect(screen.getByText('AsyncAPI Migration Studio · v0.1.0')).toBeInTheDocument();
+    expect(
+      screen.getByText(`AsyncAPI Migration Studio · v${packageJson.version}`),
+    ).toBeInTheDocument();
   });
 
   it('does not show an idle migration notice', () => {
