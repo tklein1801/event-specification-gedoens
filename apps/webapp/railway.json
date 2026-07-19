@@ -2,14 +2,14 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "RAILPACK",
-    "buildCommand": "npx turbo run build --filter=@tklein1801/esg-app",
-    "watchPatterns": ["/apps/web/**", "/packages/**"],
+    "buildCommand": "npx turbo run build --filter=@tklein1801/esg-webapp",
+    "watchPatterns": ["/apps/webapp/**", "/packages/**"],
     "buildEnvironment": "V3"
   },
   "deploy": {
     "runtime": "V2",
     "numReplicas": 1,
-    "startCommand": "npm run start --workspace=@tklein1801/esg-app",
+    "startCommand": "npm run start --workspace=@tklein1801/esg-webapp",
     "healthcheckPath": "/",
     "healthcheckTimeout": 15,
     "sleepApplication": false,

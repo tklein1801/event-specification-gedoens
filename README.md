@@ -6,13 +6,13 @@ Event Specification Gedoens is a Turborepo containing a command-line tool and a 
 
 ```text
 apps/
-└── web/                 React, Vite and Tailwind browser application
+└── webapp/              React, Vite and Tailwind browser application
 packages/
 ├── cli/                 Published `@tklein1801/esg-cli` CLI
 ├── migration-core/      Browser- and CLI-safe parsing and migration API
 ├── ui/                  Shared shadcn/ui components and design tokens
 ├── eslint-config/       Shared flat ESLint configurations
-└── typescript-config/   Shared TypeScript configurations
+└── typescriptconfig/    Shared TypeScript configurations
 ```
 
 The root uses npm Workspaces and Turborepo. Package builds run before dependent app and CLI tasks, and generated `dist/` folders are cached locally by Turbo.
@@ -44,7 +44,7 @@ npm run format       # format the repository
 Target an individual workspace when needed:
 
 ```sh
-npm run dev --workspace @tklein1801/esg-app
+npm run dev --workspace @tklein1801/esg-webapp
 npm run test --workspace @event-specification-gedoens/migration-core
 npm run build --workspace @tklein1801/esg-cli
 ```
