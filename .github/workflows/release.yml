@@ -7,7 +7,7 @@ on:
 
 jobs:
   release:
-    name: Verify & publish CLI
+    name: Verify & release CLI and webapp
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -55,4 +55,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release
+        run: node scripts/release.cjs .releaserc.json
+
+      - name: Release Webapp
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: node scripts/release.cjs .releaserc.webapp.json

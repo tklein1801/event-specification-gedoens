@@ -105,7 +105,7 @@ Reusable React components belong in `packages/ui`, not in an individual app. Its
 
 ## CI and releases
 
-The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. The release workflow repeats the same gates on `main` before Semantic Release publishes `packages/cli` as `@tklein1801/esg-cli`. The browser-neutral migration core is bundled into the CLI artifact, so the published command remains self-contained.
+The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. On pushes to `main`, the release workflow repeats these gates and runs path-aware Semantic Release for the CLI and webapp independently. Conventional Commits determine the version increment (`feat` = minor, `fix`/`refactor` = patch, breaking changes = major); only packages touched by a commit are released. Both releases update the central `CHANGELOG.md`, while only `packages/cli` is published as `@tklein1801/esg-cli`.
 
 ## Documentation
 
