@@ -1,5 +1,6 @@
 {
   "branches": ["main"],
+  "tagFormat": "cli-v${version}",
   "plugins": [
     [
       "./scripts/semantic-release-paths.cjs",
