@@ -25,7 +25,7 @@
   ],
   "scripts": {
     "build": "tsup src/cli.ts --format cjs --dts --sourcemap --clean",
-    "start": "node dist/cli.js",
+    "run": "node dist/cli.js",
     "test": "vitest run",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix",

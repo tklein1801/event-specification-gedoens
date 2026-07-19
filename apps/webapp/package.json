@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite",
-    "start": "serve --single --listen $PORT dist",
+    "start": "serve --single --listen 3000 dist",
     "test": "vitest run",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
