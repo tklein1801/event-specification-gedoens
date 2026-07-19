@@ -68,17 +68,15 @@ describe('AsyncAPI migration app', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('disables structured to unstructured migrations', () => {
+  it('offers both migration directions', () => {
     render(<App />);
 
-    expect(screen.getByLabelText('Migration direction')).toBeDisabled();
+    expect(screen.getByLabelText('Migration direction')).not.toBeDisabled();
     expect(
-      screen.getByRole('option', {
-        name: 'AsyncAPI 3.x → 2.x · unstructured (temporarily unavailable)',
-      }),
-    ).toBeDisabled();
+      screen.getByRole('option', { name: 'AsyncAPI 3.x → 2.x · unstructured' }),
+    ).not.toBeDisabled();
     expect(
-      screen.getByText('Structured → unstructured migration is temporarily disabled.'),
+      screen.getByText('Choose the direction that matches the input specification.'),
     ).toBeInTheDocument();
   });
 

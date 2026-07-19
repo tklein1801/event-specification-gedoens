@@ -6,13 +6,13 @@ Event Specification Gedoens is a Turborepo containing a command-line tool and a 
 
 ```text
 apps/
-└── web/                 React, Vite and Tailwind browser application
+└── webapp/              React, Vite and Tailwind browser application
 packages/
 ├── cli/                 Published `@tklein1801/esg-cli` CLI
 ├── migration-core/      Browser- and CLI-safe parsing and migration API
 ├── ui/                  Shared shadcn/ui components and design tokens
 ├── eslint-config/       Shared flat ESLint configurations
-└── typescript-config/   Shared TypeScript configurations
+└── typescriptconfig/    Shared TypeScript configurations
 ```
 
 The root uses npm Workspaces and Turborepo. Package builds run before dependent app and CLI tasks, and generated `dist/` folders are cached locally by Turbo.
@@ -44,7 +44,7 @@ npm run format       # format the repository
 Target an individual workspace when needed:
 
 ```sh
-npm run dev --workspace @tklein1801/esg-app
+npm run dev --workspace @tklein1801/esg-webapp
 npm run test --workspace @event-specification-gedoens/migration-core
 npm run build --workspace @tklein1801/esg-cli
 ```
@@ -105,7 +105,7 @@ Reusable React components belong in `packages/ui`, not in an individual app. Its
 
 ## CI and releases
 
-The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. The release workflow repeats the same gates on `main` before Semantic Release publishes `packages/cli` as `@tklein1801/esg-cli`. The browser-neutral migration core is bundled into the CLI artifact, so the published command remains self-contained.
+The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. On pushes to `main`, the release workflow repeats these gates and runs path-aware Semantic Release for the CLI and webapp independently. Conventional Commits determine the version increment (`feat` = minor, `fix`/`refactor` = patch, breaking changes = major); only packages touched by a commit are released. Both releases update the central `CHANGELOG.md`, while only `packages/cli` is published as `@tklein1801/esg-cli`.
 
 ## Documentation
 

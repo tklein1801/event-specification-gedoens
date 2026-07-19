@@ -1,11 +1,18 @@
 {
   "branches": ["main"],
+  "tagFormat": "webapp-v${version}",
   "plugins": [
     [
       "./scripts/semantic-release-paths.cjs",
       {
         "preset": "conventionalcommits",
-        "paths": ["packages/cli", "packages/migration-core", "package.json", "package-lock.json"],
+        "paths": [
+          "apps/webapp",
+          "packages/ui",
+          "packages/migration-core",
+          "package.json",
+          "package-lock.json"
+        ],
         "releaseRules": [
           { "type": "feat", "release": "minor" },
           { "type": "fix", "release": "patch" },
@@ -25,15 +32,15 @@
     [
       "@semantic-release/npm",
       {
-        "npmPublish": true,
-        "pkgRoot": "packages/cli"
+        "npmPublish": false,
+        "pkgRoot": "apps/webapp"
       }
     ],
     [
       "@semantic-release/git",
       {
-        "assets": ["packages/cli/package.json", "CHANGELOG.md"],
-        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+        "assets": ["apps/webapp/package.json", "CHANGELOG.md"],
+        "message": "chore(release): webapp ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
     "@semantic-release/github"

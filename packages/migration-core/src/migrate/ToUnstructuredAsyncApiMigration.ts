@@ -71,9 +71,16 @@ export class ToUnstructuredAsyncApiMigration implements AsyncApiMigration {
     const migratedComponents = schemaMigrator.withSchemas(
       this.migrateComponents(components, schemaMigrator),
     );
+    const info = AsyncApiDocumentNavigator.isObject(documentFields.info)
+      ? structuredClone(documentFields.info)
+      : {};
+    if (typeof info.description !== 'string') {
+      info.description = 'Unstructured CloudEvent event specification.';
+    }
 
     return {
       ...structuredClone(documentFields),
+      info,
       asyncapi: '2.0.0',
       ...(Object.keys(channels).length > 0 ? { channels } : {}),
       ...(migratedComponents === undefined ? {} : { components: migratedComponents }),
