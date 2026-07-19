@@ -179,7 +179,7 @@ describe('AsyncAPI migrations', () => {
               {
                 name: 'OrderChanged',
                 contentType: 'application/json',
-                headers: unstructuredHeaders(),
+                headers: retainedTypeHeader(),
                 payload: { $ref: '#/components/schemas/OrderChanged' },
                 traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
               },
@@ -191,7 +191,7 @@ describe('AsyncAPI migrations', () => {
     expect(migrated.components).toMatchObject({
       messages: {
         OrderCreated: {
-          headers: unstructuredHeaders(),
+          headers: retainedTypeHeader(),
           payload: { $ref: '#/components/schemas/OrderCreated' },
           traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
         },
@@ -324,10 +324,12 @@ describe('AsyncAPI migrations', () => {
 
     expect(migrated.components?.messages).toMatchObject({
       OrderCreated: {
-        headers: { properties: { type: { const: 'order.created' } } },
         payload: { $ref: '#/components/schemas/OrderCreated' },
         traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
       },
+    });
+    expect(migrated.components?.messages?.OrderCreated).toMatchObject({
+      headers: { properties: { type: { const: 'order.created' } } },
     });
     expect(migrated.components?.messageTraits).toMatchObject({
       CloudEventContext: {
@@ -385,6 +387,80 @@ describe('AsyncAPI migrations', () => {
     });
   });
 
+  it('applies SAP structured-to-unstructured schema rules', () => {
+    const migrated = new ToUnstructuredAsyncApiMigration().migrate({
+      asyncapi: '3.0.0',
+      info: { title: 'Orders' },
+      components: {
+        messages: {
+          OrderCreated: { payload: { $ref: '#/components/schemas/OrderCreated' } },
+        },
+        schemas: {
+          OrderCreated: {
+            type: 'object',
+            required: ['specversion', 'id', 'source', 'type', 'data'],
+            properties: {
+              specversion: { type: 'string', const: '1.0' },
+              id: { type: 'string' },
+              source: { type: 'string' },
+              type: { type: 'string', const: 'orders.created.v1' },
+              datacontenttype: { type: 'string', const: 'application/json' },
+              data: {
+                type: 'object',
+                properties: {
+                  customer: {
+                    type: 'object',
+                    properties: { age: { type: 'integer' } },
+                  },
+                  lines: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: { amount: { type: 'number' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(migrated.info).toMatchObject({
+      title: 'Orders',
+      description: 'Unstructured CloudEvent event specification.',
+    });
+    expect(migrated.components?.messages).toMatchObject({
+      OrderCreated: {
+        name: 'orders.created.v1',
+        headers: retainedCloudEventHeaders(),
+        traits: [{ $ref: '#/components/messageTraits/CloudEventContext' }],
+        payload: { $ref: '#/components/schemas/OrderCreated' },
+      },
+    });
+    expect(migrated.components?.schemas).toEqual({
+      OrderCreated: {
+        type: 'object',
+        properties: {
+          customer: { $ref: '#/components/schemas/OrderCreated_customer' },
+          lines: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/OrderCreated_lines' },
+          },
+        },
+      },
+      OrderCreated_customer: {
+        type: 'object',
+        properties: { age: { type: 'integer', format: 'int64' } },
+      },
+      OrderCreated_lines: {
+        type: 'object',
+        properties: { amount: { type: 'number', format: 'decimal' } },
+      },
+    });
+  });
+
   it('rejects documents whose version does not match the requested migration', () => {
     expect(() => new ToStructuredAsyncApiMigration().migrate({ asyncapi: '3.0.0' })).toThrow(
       InvalidAsyncApiSpecification,
@@ -405,6 +481,19 @@ function structuredPayload(schema: string) {
       source: { type: 'string' },
       type: { type: 'string' },
       data: { $ref: `#/components/schemas/${schema}` },
+    },
+  };
+}
+
+function retainedTypeHeader() {
+  return { properties: { type: { type: 'string' } } };
+}
+
+function retainedCloudEventHeaders() {
+  return {
+    properties: {
+      type: { type: 'string' },
+      datacontenttype: { type: 'string', const: 'application/json' },
     },
   };
 }
