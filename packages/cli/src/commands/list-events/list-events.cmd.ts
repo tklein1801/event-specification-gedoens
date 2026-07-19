@@ -6,6 +6,6 @@ const listEvents = new ListEventsService();
 export const ListEvents = createAsyncApiCommand({
   name: 'list-events',
   aliases: ['le'],
-  description: 'List published and consumed events from an AsyncAPI specification',
+  description: 'List the published and consumed events from an AsyncAPI specification',
   execute: (specification) => listEvents.execute(specification),
 });
