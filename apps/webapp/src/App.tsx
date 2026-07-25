@@ -37,8 +37,14 @@ import { SpecificationInfo } from './SpecificationInfo';
 import { StudioPage } from './StudioPage';
 
 function encodeSpec(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
+  // TextEncoder produces UTF-8 bytes (0–255); String.fromCharCode maps each byte
+  // to its Latin-1 code point so btoa can encode the resulting binary string.
+  const utf8Bytes = new TextEncoder().encode(text);
+  let binaryString = '';
+  for (const byte of utf8Bytes) {
+    binaryString += String.fromCharCode(byte);
+  }
+  return btoa(binaryString);
 }
 
 function decodeSpec(encoded: string): string {
@@ -221,9 +227,7 @@ export function App() {
 
   async function shareResult() {
     try {
-      const shareUrl = new URL(window.location.href);
-      shareUrl.search = '';
-      shareUrl.hash = '';
+      const shareUrl = new URL(window.location.origin + window.location.pathname);
       shareUrl.searchParams.set('spec', encodeSpec(output));
       shareUrl.searchParams.set('action', migrationAction);
       shareUrl.searchParams.set('format', outputFormat);
