@@ -231,7 +231,7 @@ export function App() {
     shareUrl.searchParams.set('action', migrationAction);
     shareUrl.searchParams.set('format', outputFormat);
 
-    if (typeof navigator.share === 'function') {
+    if ('share' in navigator && typeof navigator.share === 'function') {
       try {
         await navigator.share({ url: shareUrl.toString() });
         setShared(true);
