@@ -226,16 +226,28 @@ export function App() {
   }
 
   async function shareResult() {
-    try {
-      const shareUrl = new URL(window.location.origin + window.location.pathname);
-      shareUrl.searchParams.set('spec', encodeSpec(output));
-      shareUrl.searchParams.set('action', migrationAction);
-      shareUrl.searchParams.set('format', outputFormat);
-      await navigator.clipboard.writeText(shareUrl.toString());
-      setShared(true);
-      setStatus({ kind: 'success', message: 'Share link copied to the clipboard.' });
-    } catch {
-      setStatus({ kind: 'error', message: 'Clipboard access is unavailable in this browser.' });
+    const shareUrl = new URL(window.location.origin + window.location.pathname);
+    shareUrl.searchParams.set('spec', encodeSpec(output));
+    shareUrl.searchParams.set('action', migrationAction);
+    shareUrl.searchParams.set('format', outputFormat);
+
+    if (typeof navigator.share === 'function') {
+      try {
+        await navigator.share({ url: shareUrl.toString() });
+        setShared(true);
+        setStatus({ kind: 'success', message: 'Specification shared.' });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setStatus({ kind: 'error', message: 'Sharing is unavailable in this browser.' });
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl.toString());
+        setShared(true);
+        setStatus({ kind: 'success', message: 'Share link copied to the clipboard.' });
+      } catch {
+        setStatus({ kind: 'error', message: 'Clipboard access is unavailable in this browser.' });
+      }
     }
   }
 
