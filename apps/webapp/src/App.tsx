@@ -22,6 +22,7 @@ import {
   Download,
   FileUp,
   Github,
+  Link,
   LoaderCircle,
   Maximize2,
   Minimize2,
@@ -35,6 +36,41 @@ import packageJson from '../package.json';
 import { SpecificationInfo } from './SpecificationInfo';
 import { StudioPage } from './StudioPage';
 
+function encodeSpec(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
+}
+
+function decodeSpec(encoded: string): string {
+  const binary = atob(encoded);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+type SharedSpec = {
+  output: string;
+  action: MigrationAction;
+  format: SpecificationFormat;
+};
+
+function readSharedSpec(): SharedSpec | null {
+  const params = new URLSearchParams(window.location.search);
+  const encodedSpec = params.get('spec');
+  if (!encodedSpec) return null;
+
+  try {
+    const action = params.get('action');
+    const format = params.get('format');
+    return {
+      output: decodeSpec(encodedSpec),
+      action: action === 'to-structured' || action === 'to-unstructured' ? action : 'to-structured',
+      format: format === 'json' || format === 'yaml' ? format : 'yaml',
+    };
+  } catch {
+    return null;
+  }
+}
+
 type Status =
   | { kind: 'idle' }
   | { kind: 'loading' }
@@ -42,13 +78,21 @@ type Status =
   | { kind: 'error'; message: string };
 
 export function App() {
+  const [sharedSpec] = useState(readSharedSpec);
   const [input, setInput] = useState('');
-  const [output, setOutput] = useState('');
-  const [outputFormat, setOutputFormat] = useState<SpecificationFormat>('yaml');
-  const [migrationAction, setMigrationAction] = useState<MigrationAction>('to-structured');
+  const [output, setOutput] = useState(sharedSpec?.output ?? '');
+  const [outputFormat, setOutputFormat] = useState<SpecificationFormat>(
+    sharedSpec?.format ?? 'yaml',
+  );
+  const [migrationAction, setMigrationAction] = useState<MigrationAction>(
+    sharedSpec?.action ?? 'to-structured',
+  );
   const [fileName, setFileName] = useState<string>();
-  const [status, setStatus] = useState<Status>({ kind: 'idle' });
+  const [status, setStatus] = useState<Status>(
+    sharedSpec ? { kind: 'success', message: 'Shared specification loaded.' } : { kind: 'idle' },
+  );
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [maximizedEditor, setMaximizedEditor] = useState<'source' | 'output' | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     const storedTheme = localStorage.getItem('esg-theme');
@@ -106,6 +150,7 @@ export function App() {
     setOutput('');
     setStatus({ kind: 'idle' });
     setCopied(false);
+    setShared(false);
   }
 
   async function uploadFile(event: ChangeEvent<HTMLInputElement>) {
@@ -127,6 +172,7 @@ export function App() {
     setStatus({ kind: 'loading' });
     setOutput('');
     setCopied(false);
+    setShared(false);
 
     await Promise.resolve();
 
@@ -171,6 +217,22 @@ export function App() {
     link.click();
     URL.revokeObjectURL(url);
     setStatus({ kind: 'success', message: `${link.download} download started.` });
+  }
+
+  async function shareResult() {
+    try {
+      const shareUrl = new URL(window.location.href);
+      shareUrl.search = '';
+      shareUrl.hash = '';
+      shareUrl.searchParams.set('spec', encodeSpec(output));
+      shareUrl.searchParams.set('action', migrationAction);
+      shareUrl.searchParams.set('format', outputFormat);
+      await navigator.clipboard.writeText(shareUrl.toString());
+      setShared(true);
+      setStatus({ kind: 'success', message: 'Share link copied to the clipboard.' });
+    } catch {
+      setStatus({ kind: 'error', message: 'Clipboard access is unavailable in this browser.' });
+    }
   }
 
   function showCopyToast(label: string) {
@@ -381,6 +443,21 @@ export function App() {
                 <Button variant="outline" size="sm" onClick={downloadResult} disabled={!output}>
                   <Download className="size-4" aria-hidden="true" />
                   Download
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void shareResult()}
+                  disabled={!output}
+                  aria-label="Share migrated specification via link"
+                  title="Copy share link"
+                >
+                  {shared ? (
+                    <Check className="size-4" />
+                  ) : (
+                    <Link className="size-4" aria-hidden="true" />
+                  )}
+                  {shared ? 'Linked' : 'Share'}
                 </Button>
                 <Button
                   variant="outline"
