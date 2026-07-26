@@ -17,6 +17,10 @@ describe('AsyncAPI migration app', () => {
       configurable: true,
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(undefined),
+    });
   });
 
   it('persists the selected color mode', async () => {
@@ -334,5 +338,117 @@ describe('AsyncAPI migration app', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'asyncapi.migrated.json download started.',
     );
+  });
+
+  it('generates a share link from the migrated result using navigator.share', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: { value: '{"asyncapi":"2.6.0"}' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    );
+
+    expect(navigator.share).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringContaining('spec=') }),
+    );
+    expect(navigator.share).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringContaining('action=to-structured') }),
+    );
+    expect(navigator.share).toHaveBeenCalledWith(
+      expect.objectContaining({ url: expect.stringContaining('format=') }),
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('Specification shared.');
+    expect(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    ).toHaveTextContent('Linked');
+  });
+
+  it('falls back to clipboard when navigator.share is unavailable', async () => {
+    Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: { value: '{"asyncapi":"2.6.0"}' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    );
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('spec='));
+    expect(screen.getByRole('status')).toHaveTextContent('Share link copied to the clipboard.');
+  });
+
+  it('does not show an error when the user cancels the share dialog', async () => {
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(new DOMException('Share cancelled', 'AbortError')),
+    });
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: { value: '{"asyncapi":"2.6.0"}' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    );
+
+    expect(screen.queryByText(/unavailable/i)).not.toBeInTheDocument();
+  });
+
+  it('loads a shared specification from the URL query parameter', async () => {
+    const specContent = 'asyncapi: 3.0.0\ninfo:\n  title: Shared\n  version: 1.0.0';
+    const bytes = new TextEncoder().encode(specContent);
+    const encoded = btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(''));
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...window.location,
+        href: `http://localhost/?spec=${encoded}&action=to-structured&format=yaml`,
+        search: `?spec=${encoded}&action=to-structured&format=yaml`,
+        hash: '',
+      },
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText<HTMLTextAreaElement>('Migrated AsyncAPI result').value,
+      ).toContain('asyncapi: 3.0.0');
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Shared specification loaded.');
+  });
+
+  it('resets the share button state when a new migration runs', async () => {
+    render(<App />);
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: { value: '{"asyncapi":"2.6.0"}' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    ).toHaveTextContent('Linked');
+
+    fireEvent.change(screen.getByLabelText('AsyncAPI source'), {
+      target: { value: '{"asyncapi":"2.6.0","info":{"title":"New"}}' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /migrate specification/i }));
+    await screen.findByText(/Migration complete/);
+
+    expect(
+      screen.getByRole('button', { name: 'Share migrated specification via link' }),
+    ).toHaveTextContent('Share');
   });
 });
