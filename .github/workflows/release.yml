@@ -52,6 +52,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Verify Docker build
+        run: docker build -f apps/webapp/Dockerfile -t esg-webapp:ci .
+
       - name: Release CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
