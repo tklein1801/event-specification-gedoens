@@ -10,6 +10,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    fs: {
+      allow: [fileURLToPath(new URL('../../docs', import.meta.url))],
+    },
+  },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.tsx'],

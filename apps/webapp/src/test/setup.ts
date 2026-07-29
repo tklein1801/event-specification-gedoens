@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 
-Object.defineProperty(window, 'matchMedia', {
-  configurable: true,
-  value: () => ({ matches: false, addListener: () => {}, removeListener: () => {} }),
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: () => ({ matches: false, addListener: () => {}, removeListener: () => {} }),
+  });
+}
