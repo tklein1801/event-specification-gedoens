@@ -71,7 +71,7 @@ function displayValue(value: unknown) {
 interface StudioPageProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
-  onNavigate: (page: 'migration' | 'studio') => void;
+  onNavigate: (page: 'migration' | 'studio' | 'docs') => void;
 }
 
 export function StudioPage({ darkMode, onToggleDarkMode, onNavigate }: StudioPageProps) {
@@ -153,6 +153,12 @@ export function StudioPage({ darkMode, onToggleDarkMode, onNavigate }: StudioPag
               aria-current="page"
             >
               Studio
+            </button>
+            <button
+              className="rounded-lg px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => onNavigate('docs')}
+            >
+              Docs
             </button>
           </nav>
           <Button
