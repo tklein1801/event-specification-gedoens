@@ -5,6 +5,7 @@ WORKDIR /app
 COPY package.json package-lock.json turbo.json ./
 COPY apps ./apps
 COPY packages ./packages
+COPY docs ./docs
 
 RUN npm ci
 RUN npx turbo run build --filter=@tklein1801/esg-webapp
