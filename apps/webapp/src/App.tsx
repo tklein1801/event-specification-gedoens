@@ -34,6 +34,7 @@ import {
 import packageJson from '../package.json';
 import { SpecificationInfo } from './SpecificationInfo';
 import { StudioPage } from './StudioPage';
+import { DocsPage } from './DocsPage';
 
 type Status =
   | { kind: 'idle' }
@@ -55,19 +56,27 @@ export function App() {
     if (storedTheme) return storedTheme === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-  const [page, setPage] = useState<'migration' | 'studio'>(() =>
-    window.location.hash === '#studio' ? 'studio' : 'migration',
-  );
+  const [page, setPage] = useState<'migration' | 'studio' | 'docs'>(() => {
+    if (window.location.hash === '#studio') return 'studio';
+    if (window.location.hash === '#docs' || window.location.hash.startsWith('#docs-'))
+      return 'docs';
+    return 'migration';
+  });
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const onHashChange = () => setPage(window.location.hash === '#studio' ? 'studio' : 'migration');
+    const onHashChange = () => {
+      if (window.location.hash === '#studio') setPage('studio');
+      else if (window.location.hash === '#docs' || window.location.hash.startsWith('#docs-'))
+        setPage('docs');
+      else setPage('migration');
+    };
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  function navigate(nextPage: 'migration' | 'studio') {
-    window.location.hash = nextPage === 'studio' ? 'studio' : '';
+  function navigate(nextPage: 'migration' | 'studio' | 'docs') {
+    window.location.hash = nextPage === 'migration' ? '' : nextPage;
     setPage(nextPage);
   }
 
@@ -187,6 +196,16 @@ export function App() {
     );
   }
 
+  if (page === 'docs') {
+    return (
+      <DocsPage
+        darkMode={darkMode}
+        onToggleDarkMode={() => setDarkMode((current) => !current)}
+        onNavigate={navigate}
+      />
+    );
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[1600px] flex-col px-4 py-8 sm:px-6 lg:px-10">
       <header className="mb-8 flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
@@ -207,6 +226,12 @@ export function App() {
               onClick={() => navigate('studio')}
             >
               Studio
+            </button>
+            <button
+              className="rounded-lg px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              onClick={() => navigate('docs')}
+            >
+              Docs
             </button>
           </nav>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border bg-card/80 px-3 py-1 text-xs font-semibold text-primary shadow-sm backdrop-blur">
