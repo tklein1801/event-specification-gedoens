@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { App } from './App';
-import { documentation, parseMarkdown } from './docs';
+import { documentation, parseDocumentationSources, parseMarkdown } from './docs';
 
 afterEach(cleanup);
 
@@ -45,6 +45,14 @@ describe('documentation embedding', () => {
     expect(
       [...document.querySelectorAll('code')].some((element) => element.textContent === 'asyncapi'),
     ).toBe(true);
+  });
+
+  it('discovers Markdown files in nested docs directories', () => {
+    const nested = parseDocumentationSources({
+      '/workspace/docs/guide/setup.md': '# Setup\n\nNested guide',
+      '/workspace/docs/root.md': '# Root\n\nRoot guide',
+    });
+    expect(nested.map((doc) => doc.slug)).toEqual(['root', 'guide-setup']);
   });
 
   it('statically embeds every Markdown document from docs', () => {

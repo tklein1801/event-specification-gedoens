@@ -142,17 +142,22 @@ export function parseMarkdown(markdown: string): MarkdownBlock[] {
   return blocks;
 }
 
-const sources = import.meta.glob('../../../docs/*.md', {
+export function parseDocumentationSources(sources: Record<string, string>): DocumentationPage[] {
+  return Object.entries(sources)
+    .map(([path, source]) => {
+      const relativePath = path.replaceAll('\\\\', '/').split('/docs/')[1] ?? path;
+      const slug = relativePath.replace(/\.md$/, '').replace(/\//g, '-');
+      const blocks = parseMarkdown(source);
+      const title = blocks.find((block) => block.type === 'heading')?.text ?? slug;
+      return { slug, title, blocks };
+    })
+    .sort((left, right) => left.title.localeCompare(right.title));
+}
+
+const sources = import.meta.glob('../../../docs/**/*.md', {
   eager: true,
   query: '?raw',
   import: 'default',
 });
 
-export const documentation: DocumentationPage[] = Object.entries(sources)
-  .map(([path, source]) => {
-    const slug = path.split('/').pop()?.replace(/\.md$/, '') ?? path;
-    const blocks = parseMarkdown(source as string);
-    const title = blocks.find((block) => block.type === 'heading')?.text ?? slug;
-    return { slug, title, blocks };
-  })
-  .sort((left, right) => left.title.localeCompare(right.title));
+export const documentation = parseDocumentationSources(sources as Record<string, string>);
