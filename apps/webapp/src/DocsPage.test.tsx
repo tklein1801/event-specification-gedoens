@@ -8,13 +8,30 @@ afterEach(cleanup);
 describe('documentation embedding', () => {
   it('parses headings, lists, tables, paragraphs, and fenced code', () => {
     const blocks = parseMarkdown(
-      `# Guide\n\nText **here**.\n\n- one\n- two\n\n1. first\n2. second\n\n| Name | Value |\n| --- | --- |\n| a | b |\n\n\`\`\`ts\nconst answer = 42;\n\`\`\``,
+      `# Guide\n\nText **here**.\n\n- one\n- Sets \`asyncapi\` to \`2.0.0\`.\n\n1. first\n2. second\n\n| Name | Value |\n| --- | --- |\n| a | b |\n\n\`\`\`ts\nconst answer = 42;\n\`\`\``,
     );
     expect(blocks).toEqual([
       { type: 'heading', level: 1, text: 'Guide' },
       { type: 'paragraph', text: 'Text here.' },
-      { type: 'list', ordered: false, items: ['one', 'two'] },
-      { type: 'list', ordered: true, items: ['first', 'second'] },
+      {
+        type: 'list',
+        ordered: false,
+        items: [
+          [{ type: 'text', value: 'one' }],
+          [
+            { type: 'text', value: 'Sets ' },
+            { type: 'code', value: 'asyncapi' },
+            { type: 'text', value: ' to ' },
+            { type: 'code', value: '2.0.0' },
+            { type: 'text', value: '.' },
+          ],
+        ],
+      },
+      {
+        type: 'list',
+        ordered: true,
+        items: [[{ type: 'text', value: 'first' }], [{ type: 'text', value: 'second' }]],
+      },
       { type: 'table', headers: ['Name', 'Value'], rows: [['a', 'b']] },
       { type: 'code', language: 'ts', code: 'const answer = 42;' },
     ]);
@@ -25,6 +42,9 @@ describe('documentation embedding', () => {
     render(<App />);
     expect(document.querySelectorAll('ul').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('ol').length).toBeGreaterThan(0);
+    expect(
+      [...document.querySelectorAll('code')].some((element) => element.textContent === 'asyncapi'),
+    ).toBe(true);
   });
 
   it('statically embeds every Markdown document from docs', () => {

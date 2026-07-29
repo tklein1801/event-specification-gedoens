@@ -1,12 +1,24 @@
 import { BookOpen, Github, Moon, Sun } from 'lucide-react';
 import type { ElementType } from 'react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@event-specification-gedoens/ui';
-import { documentation, type MarkdownBlock } from './docs';
+import { documentation, type InlinePart, type MarkdownBlock } from './docs';
 
 interface DocsPageProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onNavigate: (page: 'migration' | 'studio' | 'docs') => void;
+}
+
+function InlineContent({ parts }: { parts: InlinePart[] }) {
+  return parts.map((part, index) =>
+    part.type === 'code' ? (
+      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.9em]" key={index}>
+        {part.value}
+      </code>
+    ) : (
+      part.value
+    ),
+  );
 }
 
 function Block({ block }: { block: MarkdownBlock }) {
@@ -25,7 +37,9 @@ function Block({ block }: { block: MarkdownBlock }) {
         }`}
       >
         {block.items.map((item, index) => (
-          <li key={`${index}-${item}`}>{item}</li>
+          <li key={`${index}-${item.map((part) => part.value).join('')}`}>
+            <InlineContent parts={item} />
+          </li>
         ))}
       </List>
     );

@@ -1,7 +1,9 @@
+export type InlinePart = { type: 'text' | 'code'; value: string };
+
 export type MarkdownBlock =
   | { type: 'heading'; level: number; text: string }
   | { type: 'paragraph'; text: string }
-  | { type: 'list'; ordered: boolean; items: string[] }
+  | { type: 'list'; ordered: boolean; items: InlinePart[][] }
   | { type: 'code'; language: string; code: string }
   | { type: 'table'; headers: string[]; rows: string[][] };
 
@@ -18,6 +20,30 @@ function cleanInlineMarkdown(value: string): string {
     .replace(/(`+)(.*?)\1/g, '$2')
     .replace(/[*_~]/g, '')
     .trim();
+}
+
+function parseInlineText(value: string): string {
+  const cleaned = cleanInlineMarkdown(value);
+  if (!cleaned) return '';
+  return `${/^\s/.test(value) ? ' ' : ''}${cleaned}${/\s$/.test(value) ? ' ' : ''}`;
+}
+
+function parseInlineMarkdown(value: string): InlinePart[] {
+  const parts: InlinePart[] = [];
+  let cursor = 0;
+  const codePattern = /(`+)(.*?)\1/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = codePattern.exec(value)) !== null) {
+    const before = parseInlineText(value.slice(cursor, match.index));
+    if (before) parts.push({ type: 'text', value: before });
+    parts.push({ type: 'code', value: match[2] ?? '' });
+    cursor = match.index + match[0].length;
+  }
+
+  const after = parseInlineText(value.slice(cursor));
+  if (after) parts.push({ type: 'text', value: after });
+  return parts;
 }
 
 function isTableSeparator(line: string): boolean {
@@ -73,11 +99,11 @@ export function parseMarkdown(markdown: string): MarkdownBlock[] {
     if (listItem) {
       const ordered = /^\d+[.)]/.test(line);
       const marker = ordered ? /^\d+[.)]\s+/ : /^[-*+]\s+/;
-      const items: string[] = [];
+      const items: InlinePart[][] = [];
       while (index < lines.length) {
         const itemLine = (lines[index] ?? '').trim();
         if (!marker.test(itemLine)) break;
-        items.push(cleanInlineMarkdown(itemLine.replace(marker, '')));
+        items.push(parseInlineMarkdown(itemLine.replace(marker, '')));
         index += 1;
       }
       blocks.push({ type: 'list', ordered, items });
