@@ -3,6 +3,9 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
+const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
+const docsDirectory = fileURLToPath(new URL('../../docs', import.meta.url));
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -12,7 +15,7 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: [fileURLToPath(new URL('../../docs', import.meta.url))],
+      allow: [workspaceRoot, docsDirectory],
     },
   },
   test: {
