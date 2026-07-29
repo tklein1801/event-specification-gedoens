@@ -17,12 +17,17 @@ function Block({ block }: { block: MarkdownBlock }) {
   if (block.type === 'paragraph')
     return <p className="mt-4 leading-7 text-muted-foreground">{block.text}</p>;
   if (block.type === 'list') {
+    const List = block.ordered ? 'ol' : 'ul';
     return (
-      <ul className="mt-4 list-disc space-y-2 pl-6 leading-7 text-muted-foreground">
-        {block.items.map((item) => (
-          <li key={item}>{item}</li>
+      <List
+        className={`mt-4 list-inside space-y-2 pl-2 leading-7 text-muted-foreground ${
+          block.ordered ? 'list-decimal' : 'list-disc'
+        }`}
+      >
+        {block.items.map((item, index) => (
+          <li key={`${index}-${item}`}>{item}</li>
         ))}
-      </ul>
+      </List>
     );
   }
   if (block.type === 'code') {
