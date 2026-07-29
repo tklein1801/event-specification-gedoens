@@ -6,8 +6,17 @@ import { defineConfig } from 'vitest/config';
 const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
 const docsDirectory = fileURLToPath(new URL('../../docs', import.meta.url));
 
+export function docsHmrPlugin() {
+  return {
+    name: 'watch-repository-docs',
+    configureServer(server: { watcher: { add: (path: string) => unknown } }) {
+      server.watcher.add(docsDirectory);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), docsHmrPlugin()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
