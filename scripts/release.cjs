@@ -5,7 +5,11 @@ const path = require('node:path');
 const semanticRelease = require('semantic-release').default;
 
 const configName = process.argv[2];
-const allowedConfigs = new Set(['.releaserc.json', '.releaserc.webapp.json']);
+const allowedConfigs = new Set([
+  '.releaserc.json',
+  '.releaserc.webapp.json',
+  '.releaserc.mcp.json',
+]);
 
 if (!allowedConfigs.has(configName)) {
   throw new Error(`Unsupported release configuration: ${configName ?? '<missing>'}`);

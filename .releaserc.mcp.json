@@ -1,0 +1,78 @@
+{
+  "branches": ["main"],
+  "tagFormat": "mcp-v${version}",
+  "plugins": [
+    [
+      "./scripts/semantic-release-paths.cjs",
+      {
+        "preset": "conventionalcommits",
+        "paths": ["apps/mcp", "package.json", "package-lock.json"],
+        "releaseRules": [
+          {
+            "type": "feat",
+            "release": "minor"
+          },
+          {
+            "type": "fix",
+            "release": "patch"
+          },
+          {
+            "type": "perf",
+            "release": "patch"
+          },
+          {
+            "type": "revert",
+            "release": "patch"
+          },
+          {
+            "type": "docs",
+            "release": false
+          },
+          {
+            "type": "style",
+            "release": false
+          },
+          {
+            "type": "chore",
+            "release": false
+          },
+          {
+            "type": "refactor",
+            "release": "patch"
+          },
+          {
+            "type": "test",
+            "release": false
+          },
+          {
+            "type": "build",
+            "release": false
+          },
+          {
+            "type": "ci",
+            "release": false
+          },
+          {
+            "breaking": true,
+            "release": "major"
+          }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/npm",
+      {
+        "npmPublish": true,
+        "pkgRoot": "apps/mcp"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["apps/mcp/package.json", "CHANGELOG.md"],
+        "message": "chore(release): mcp ${nextRelease.version} [skip ci]\\n\\n${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}

@@ -8,7 +8,7 @@ on:
 
 jobs:
   release:
-    name: Verify & release CLI and webapp
+    name: Verify & release CLI, webapp and MCP
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -62,3 +62,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: node scripts/release.cjs .releaserc.webapp.json
+
+      - name: Release MCP Service
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/release.cjs .releaserc.mcp.json
