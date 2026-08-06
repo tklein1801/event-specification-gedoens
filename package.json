@@ -46,6 +46,8 @@
     "@rollup/rollup-linux-x64-gnu": "^4.50.1"
   },
   "dependencies": {
+    "@solace-labs/ep-openapi-node": "^3.0.0",
+    "@solace-labs/ep-rt-openapi-node": "^1.1.0",
     "conventional-changelog-conventionalcommits": "^10.2.1"
   }
 }
