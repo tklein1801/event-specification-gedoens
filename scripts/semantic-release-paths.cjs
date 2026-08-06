@@ -5,11 +5,9 @@ const commitAnalyzer = require('@semantic-release/commit-analyzer');
 const notesGenerator = require('@semantic-release/release-notes-generator');
 
 function filesForCommit(hash) {
-  return execFileSync(
-    'git',
-    ['show', '--format=', '--name-only', '--no-renames', hash],
-    { encoding: 'utf8' },
-  )
+  return execFileSync('git', ['show', '--format=', '--name-only', '--no-renames', hash], {
+    encoding: 'utf8',
+  })
     .split(/\r?\n/)
     .map((file) => file.trim())
     .filter(Boolean);

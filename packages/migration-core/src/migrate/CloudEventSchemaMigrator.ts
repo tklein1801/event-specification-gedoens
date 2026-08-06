@@ -128,7 +128,9 @@ export class CloudEventSchemaMigrator {
 
   private messageName(message: JsonObject, fallback: string): string {
     if (typeof message.name === 'string' && message.name.length > 0) return message.name;
-    const headers = AsyncApiDocumentNavigator.isObject(message.headers) ? message.headers : undefined;
+    const headers = AsyncApiDocumentNavigator.isObject(message.headers)
+      ? message.headers
+      : undefined;
     const properties = AsyncApiDocumentNavigator.isObject(headers?.properties)
       ? headers.properties
       : undefined;
@@ -151,10 +153,7 @@ export class CloudEventSchemaMigrator {
         result.properties = Object.fromEntries(
           Object.entries(properties).map(([propertyName, propertySchema]) => {
             const child = this.withPrimitiveFormats(propertySchema);
-            if (
-              AsyncApiDocumentNavigator.isObject(child) &&
-              child.type === 'object'
-            ) {
+            if (AsyncApiDocumentNavigator.isObject(child) && child.type === 'object') {
               const childName = this.claimNestedSchemaName(name, propertyName);
               this.schemas[childName] = extract(child, childName) as JsonObject;
               return [
@@ -250,9 +249,7 @@ export class CloudEventSchemaMigrator {
       traits.push(traitReference);
     }
     const retainedHeaderProperties = Object.fromEntries(
-      Object.entries(properties).filter(
-        ([name]) => name === 'type' || name === 'datacontenttype',
-      ),
+      Object.entries(properties).filter(([name]) => name === 'type' || name === 'datacontenttype'),
     );
     return {
       ...message,
