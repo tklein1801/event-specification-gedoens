@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { EpSdkClient } from '@solace-labs/ep-sdk';
+import { OpenAPI as EpOpenApi } from '@solace-labs/ep-openapi-node';
+import { OpenAPI as EpRtOpenApi } from '@solace-labs/ep-rt-openapi-node';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import cors from 'cors';
 import express from 'express';
@@ -34,6 +37,16 @@ app.all('/mcp', apiKeyMiddleware, async (req, res) => {
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
+
+  logger.debug('initializing EpSdkClient with actor: %s', requestAuth.actor);
+
+  EpSdkClient.initialize({
+    globalEpOpenAPI: EpOpenApi,
+    globalEpRtOpenAPI: EpRtOpenApi,
+    token: requestAuth.token,
+  });
+
+  logger.debug('EpSdkClient initialized with token: %s', requestAuth.actor);
 
   await runWithRequestAuthContext(requestAuth, async () => {
     const server = new McpServer({ name: config.service, version: config.version });
