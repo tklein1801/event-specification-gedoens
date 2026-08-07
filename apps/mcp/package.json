@@ -21,6 +21,9 @@
     "PERMISSIONS.md",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node dist/src/server.js",
     "dev": "tsx watch src/server.ts",
