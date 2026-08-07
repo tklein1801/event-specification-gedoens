@@ -20,9 +20,15 @@
     "noUnusedParameters": true,
     "noImplicitReturns": true,
 
-    "outDir": "./build",
+    "outDir": "./dist",
     "types": ["node", "vitest/globals", "express"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["**/node_modules/**", "**/build/**", "./vitest.config.ts"]
+  "exclude": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "./vitest.config.ts",
+    "src/**/*.test.ts",
+    "src/**/__tests__/**"
+  ]
 }
