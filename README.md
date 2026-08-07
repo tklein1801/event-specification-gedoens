@@ -105,7 +105,7 @@ Reusable React components belong in `packages/ui`, not in an individual app. Its
 
 ## CI and releases
 
-The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. On pushes to `main`, the release workflow repeats these gates and runs path-aware Semantic Release for the CLI and webapp independently. Conventional Commits determine the version increment (`feat` = minor, `fix`/`refactor` = patch, breaking changes = major); only packages touched by a commit are released. Both releases update the central `CHANGELOG.md`, while only `packages/cli` is published as `@tklein1801/esg-cli`.
+The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. On pushes to `main`, the release workflow repeats these gates and runs path-aware Semantic Release for the CLI, webapp, and MCP service independently. Conventional Commits determine the version increment (`feat` = minor, `fix`/`refactor` = patch, breaking changes = major); only packages touched by a commit are released. All releases update the central `CHANGELOG.md`, while `packages/cli` is published as `@tklein1801/esg-cli` and `apps/mcp` is published as `@tklein1801/esg-mcp`.
 
 ## Documentation
 
@@ -115,3 +115,8 @@ The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint,
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Known issues
+
+- The Solace EP SDK is not fully up to date (the version in use is about two years old) and unfortunately does not provide the latest payloads and features in some areas.
+- Empty Strings in the payload will not be corretly applied to the object.
