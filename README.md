@@ -118,8 +118,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Known issues
 
-- Das Solace EP SDK nicht ganz aktuell (verwendete Version ~2 Jahre alt) und besitzt leider in manchen Bereichen nicht die aktuellsten Payloads und Features.
-
-### Events
-
-- Beim erstellen und aktualisieren eines Events wird der `brokerType` nicht korrekt gesetzt und bleibt immer leer.
+- The Solace EP SDK is not fully up to date (the version in use is about two years old) and unfortunately does not provide the latest payloads and features in some areas.
+- Empty Strings in the payload will not be corretly applied to the object.

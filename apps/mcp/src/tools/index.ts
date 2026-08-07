@@ -1,4 +1,4 @@
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerApplicationTools } from './application.tools';
 import { registerApplicationDomainTools } from './domain.tools';
 import { registerEventTools } from './event.tools';

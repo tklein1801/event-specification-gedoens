@@ -1,12 +1,14 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-// import { ApiError } from '@solace-labs/ep-openapi-node';
 import { logger } from '../lib/logger';
+import { logToolError, logToolSuccess } from '../lib/toolLogging';
 
 /**
  * Wraps a value as an MCP text content result.
  */
 export function ok(data: unknown): CallToolResult {
-  return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+  const text = JSON.stringify(data, null, 2);
+  logToolSuccess();
+  return { content: [{ type: 'text', text }] };
 }
 
 /**
@@ -14,7 +16,9 @@ export function ok(data: unknown): CallToolResult {
  */
 export function err(error: unknown): CallToolResult {
   const message = error instanceof Error ? error.message : String(error);
-  // const isApiError = error instanceof ApiError;
-  logger.error('Error: %s %o', message, error);
+  logToolError(message, error);
+  logger.debug('MCP tool error details captured', {
+    errorType: error instanceof Error ? error.name : typeof error,
+  });
   return { isError: true, content: [{ type: 'text', text: `Error: ${message}` }] };
 }

@@ -1,6 +1,6 @@
 import { ApplicationsService, ConsumersService } from '@solace-labs/ep-openapi-node';
 import { config } from '../config';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { err, ok } from './helpers';
 import { z } from 'zod';
 import { ZApplicationDomainId } from '../schemas/ApplicationDomain.schema';
@@ -20,6 +20,7 @@ import {
   ZSubscription,
 } from '../schemas/Application.schema';
 import { ZEventVersion, ZEventVersionId } from '../schemas/Event.schema';
+import { logger } from '../lib/logger';
 
 export function registerApplicationTools(server: McpServer): void {
   if (config.tools.allow_create) {
@@ -199,21 +200,15 @@ export function registerApplicationTools(server: McpServer): void {
         producedEventVersionIds,
       }) => {
         try {
-          console.dir(
-            {
-              versionId: applicationVersionId,
-              requestBody: {
-                applicationId,
-                version,
-                displayName,
-                description,
-                declaredConsumedEventVersionIds: consumedEventVersionIds,
-                declaredProducedEventVersionIds: producedEventVersionIds,
-                consumers: [],
-              },
-            },
-            { depth: 5 },
-          );
+          logger.debug('Updating application version', {
+            applicationVersionId,
+            applicationId,
+            version,
+            hasDisplayName: displayName !== undefined,
+            hasDescription: description !== undefined,
+            producedEventVersionCount: producedEventVersionIds?.length ?? 0,
+            consumedEventVersionCount: consumedEventVersionIds?.length ?? 0,
+          });
 
           const result = await ApplicationsService.updateApplicationVersion({
             versionId: applicationVersionId,

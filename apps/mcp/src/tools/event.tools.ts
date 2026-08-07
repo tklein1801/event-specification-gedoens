@@ -1,6 +1,6 @@
 import { AddressLevel, EventsService } from '@solace-labs/ep-openapi-node';
 import { config } from '../config';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { err, ok } from './helpers';
 import { z } from 'zod';
 import { ZApplicationDomainId } from '../schemas/ApplicationDomain.schema';

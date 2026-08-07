@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { logger } from '../lib/logger';
 import { extractRequestAuth } from '../lib/requestAuth';
+import { getToolCall } from '../lib/toolLogging';
 
 export function logRequest(req: Request, res: Response, next: NextFunction): void {
   const startedAt = Date.now();
@@ -43,17 +44,15 @@ function getAction(req: Request): string {
     return `${req.method} ${req.originalUrl}`;
   }
 
-  const body = req.body as { method?: unknown; params?: { name?: unknown } } | undefined;
-  if (!body?.method || typeof body.method !== 'string') {
+  const method = (req.body as { method?: unknown } | undefined)?.method;
+  if (typeof method !== 'string') {
     return `${req.method} /mcp`;
   }
 
-  if (body.method === 'tools/call') {
-    const toolName = body.params?.name;
-    if (typeof toolName === 'string' && toolName.length > 0) {
-      return `MCP tool call: ${toolName}`;
-    }
+  const toolCall = getToolCall(req.body);
+  if (toolCall) {
+    return `MCP tool call: ${toolCall.toolName}`;
   }
 
-  return `MCP method: ${body.method}`;
+  return `MCP method: ${method}`;
 }

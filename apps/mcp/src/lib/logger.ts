@@ -4,8 +4,11 @@ import { config } from '../config';
 import { type LogLevel } from './getLogLevel';
 
 const formats = {
-  pretty: format.combine(format.splat(), format.simple()),
-  json: format.combine(format.splat(), format.json()),
+  pretty: format.combine(
+    format.splat(),
+    format.colorize({ level: config.runtime === 'development' }),
+    format.simple(),
+  ),
 };
 
 export const logger = createLogger({

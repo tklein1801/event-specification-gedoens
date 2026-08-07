@@ -11,6 +11,7 @@ import { runWithRequestAuthContext, type RequestAuthContext } from './lib/reques
 import { apiKeyMiddleware, handleError, logRequest, rateLimitMiddleware } from './middleware';
 import { registerAllTools } from './tools';
 import { logger } from './lib/logger';
+import { getToolCall, runWithToolLoggingContext } from './lib/toolLogging';
 
 export const app = express();
 app.use(cors());
@@ -38,7 +39,10 @@ app.all('/mcp', apiKeyMiddleware, async (req, res) => {
     return;
   }
 
-  logger.debug('initializing EpSdkClient with actor: %s', requestAuth.actor);
+  logger.debug('Initializing EpSdkClient', {
+    actor: requestAuth.actor,
+    authMethod: requestAuth.authMethod,
+  });
 
   EpSdkClient.initialize({
     globalEpOpenAPI: EpOpenApi,
@@ -46,7 +50,9 @@ app.all('/mcp', apiKeyMiddleware, async (req, res) => {
     token: requestAuth.token,
   });
 
-  logger.debug('EpSdkClient initialized with token: %s', requestAuth.actor);
+  logger.debug('EpSdkClient initialized', {
+    actor: requestAuth.actor,
+  });
 
   await runWithRequestAuthContext(requestAuth, async () => {
     const server = new McpServer({ name: config.service, version: config.version });
@@ -59,7 +65,9 @@ app.all('/mcp', apiKeyMiddleware, async (req, res) => {
     await server.connect(transport);
 
     try {
-      await transport.handleRequest(req, res, req.body);
+      await runWithToolLoggingContext(getToolCall(req.body), () =>
+        transport.handleRequest(req, res, req.body),
+      );
     } finally {
       await server.close();
     }
@@ -73,6 +81,7 @@ export const server = app.listen(config.port, () => {
     'Application Name': config.service,
     'Application Version': config.version,
     'Runtime Environment': config.runtime,
+    'Log Level': config.logLevel,
     'Node Version': process.version,
     'Server Port': config.port,
     'Auth Headers': 'Authorization, X-Api-Key',
