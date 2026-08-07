@@ -1,4 +1,4 @@
-import { EventsService } from '@solace-labs/ep-openapi-node';
+import { AddressLevel, EventsService } from '@solace-labs/ep-openapi-node';
 import { config } from '../config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { err, ok } from './helpers';
@@ -14,6 +14,9 @@ import {
   ZEventVersion,
   ZEventDescription,
   ZEventDisplayName,
+  ZEventAddressType,
+  ZEventTopic,
+  ZEventVersionId,
 } from '../schemas/Event.schema';
 import { ZSchemaVersion } from '../schemas/Schema.schema';
 
@@ -28,9 +31,10 @@ export function registerEventTools(server: McpServer): void {
           name: ZEventName,
           brokerType: ZEventBrokerType,
           shared: ZIsEventShared,
+          requiresApproval: z.boolean().optional().default(false),
         },
       },
-      async ({ applicationDomainId, name, brokerType, shared }) => {
+      async ({ applicationDomainId, name, brokerType, shared, requiresApproval }) => {
         try {
           const result = await EventsService.createEvent({
             requestBody: {
@@ -38,6 +42,8 @@ export function registerEventTools(server: McpServer): void {
               name,
               brokerType,
               shared,
+              // @ts-expect-error Argument is valid but not included in the correct version of the SDk
+              requiresApproval,
             },
           });
           return ok(result);
@@ -54,13 +60,22 @@ export function registerEventTools(server: McpServer): void {
         inputSchema: {
           eventId: ZEventId,
           version: ZEventVersion,
-          description: ZEventDescription.optional(),
           displayName: ZEventDisplayName.optional(),
-          schemaVersionId: ZSchemaVersion.optional(),
+          description: ZEventDescription.optional(),
+          schemaVersionId: ZSchemaVersion,
+          eventAddress: z
+            .object({
+              brokerType: ZEventBrokerType,
+              addressType: ZEventAddressType,
+              topic: ZEventTopic,
+            })
+            .optional(),
         },
       },
-      async ({ description, displayName, eventId, schemaVersionId, version }) => {
+      async ({ description, displayName, eventId, schemaVersionId, version, eventAddress }) => {
         try {
+          const topicSegments: string[] =
+            eventAddress !== undefined ? eventAddress.topic.split('/') : [];
           const result = await EventsService.createEventVersion({
             requestBody: {
               eventId,
@@ -68,6 +83,19 @@ export function registerEventTools(server: McpServer): void {
               description,
               displayName,
               schemaVersionId,
+              deliveryDescriptor:
+                eventAddress !== undefined
+                  ? {
+                      brokerType: eventAddress.brokerType,
+                      address: {
+                        addressLevels: topicSegments.map((segment) => ({
+                          name: segment,
+                          addressLevelType: AddressLevel.addressLevelType.LITERAL,
+                        })),
+                        addressType: eventAddress.addressType,
+                      },
+                    }
+                  : undefined,
             },
           });
           return ok(result);
@@ -114,23 +142,55 @@ export function registerEventTools(server: McpServer): void {
       {
         description: 'Update an existing event version',
         inputSchema: {
+          eventVersionId: ZEventVersionId,
           eventId: ZEventId,
           version: ZEventVersion,
           description: ZEventDescription.optional(),
           displayName: ZEventDisplayName.optional(),
           schemaVersionId: ZSchemaVersion.optional(),
+          eventAddress: z
+            .object({
+              brokerType: ZEventBrokerType,
+              addressType: ZEventAddressType,
+              topic: ZEventTopic,
+            })
+            .optional(),
         },
       },
-      async ({ eventId, version, description, displayName, schemaVersionId }) => {
+      async ({
+        eventVersionId,
+        eventId,
+        version,
+        description,
+        displayName,
+        schemaVersionId,
+        eventAddress,
+      }) => {
+        const topicSegments: string[] =
+          eventAddress !== undefined ? eventAddress.topic.split('/') : [];
+
         try {
           const result = await EventsService.updateEventVersion({
-            id: eventId,
+            id: eventVersionId,
             requestBody: {
               eventId,
               version,
               displayName,
               description,
               schemaVersionId,
+              deliveryDescriptor:
+                eventAddress !== undefined
+                  ? {
+                      brokerType: eventAddress.brokerType,
+                      address: {
+                        addressLevels: topicSegments.map((segment) => ({
+                          name: segment,
+                          addressLevelType: AddressLevel.addressLevelType.LITERAL,
+                        })),
+                        addressType: eventAddress.addressType,
+                      },
+                    }
+                  : undefined,
             },
           });
           return ok(result);
@@ -167,13 +227,13 @@ export function registerEventTools(server: McpServer): void {
       {
         description: 'Delete an event version by its ID',
         inputSchema: {
-          versionId: ZEventVersion,
+          eventVersionId: ZEventVersionId,
         },
       },
-      async ({ versionId }) => {
+      async ({ eventVersionId }) => {
         try {
           const result = await EventsService.deleteEventVersion({
-            id: versionId,
+            id: eventVersionId,
           });
           return ok(result);
         } catch (error) {

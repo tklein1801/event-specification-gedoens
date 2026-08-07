@@ -12,6 +12,7 @@ import {
   ZSchemaName,
   ZSchemaType,
   ZSchemaVersion,
+  ZSchemaVersionId,
   ZShared,
 } from '../schemas/Schema.schema';
 import { ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
@@ -26,7 +27,7 @@ export function registerSchemaTools(server: McpServer): void {
           applicationDomainId: ZApplicationDomainId,
           name: ZSchemaName,
           schemaType: ZSchemaType,
-          shared: ZShared,
+          shared: ZShared.optional().default(false),
         },
       },
       async ({ applicationDomainId, name, schemaType, shared }) => {
@@ -53,13 +54,12 @@ export function registerSchemaTools(server: McpServer): void {
         inputSchema: {
           schemaId: ZSchemaId,
           version: ZSchemaVersion,
-          content: ZSchemaContent.optional(),
-          description: ZSchemaDescription.optional(),
           displayName: ZSchemaDisplayName.optional(),
-          type: ZSchemaType.optional(),
+          description: ZSchemaDescription.optional(),
+          content: ZSchemaContent.optional(),
         },
       },
-      async ({ schemaId, version, content, description, displayName, type }) => {
+      async ({ schemaId, version, content, description, displayName }) => {
         try {
           const result = await SchemasService.createSchemaVersion({
             requestBody: {
@@ -67,7 +67,6 @@ export function registerSchemaTools(server: McpServer): void {
               version,
               content,
               description,
-              type,
               displayName,
             },
           });
@@ -116,23 +115,21 @@ export function registerSchemaTools(server: McpServer): void {
         description: 'Update an existing schema version',
         inputSchema: {
           schemaId: ZSchemaId,
-          version: ZSchemaVersion,
-          content: ZSchemaContent.optional(),
-          description: ZSchemaDescription.optional(),
+          schemaVersionId: ZSchemaVersionId,
           displayName: ZSchemaDisplayName.optional(),
-          type: ZSchemaType.optional(),
+          description: ZSchemaDescription.optional(),
+          content: ZSchemaContent.optional(),
         },
       },
-      async ({ schemaId, version, content, description, displayName, type }) => {
+      async ({ schemaId, schemaVersionId, content, description, displayName }) => {
         try {
           const result = await SchemasService.updateSchemaVersion({
             id: schemaId,
             requestBody: {
               schemaId,
-              version,
+              version: schemaVersionId,
               content,
               description,
-              type,
               displayName,
             },
           });
@@ -170,13 +167,13 @@ export function registerSchemaTools(server: McpServer): void {
       {
         description: 'Delete a schema version by its ID',
         inputSchema: {
-          schemaId: ZSchemaId,
+          schemaVersionId: ZSchemaVersionId,
         },
       },
-      async ({ schemaId }) => {
+      async ({ schemaVersionId }) => {
         try {
           const result = await SchemasService.deleteSchemaVersion({
-            id: schemaId,
+            id: schemaVersionId,
           });
           return ok(result);
         } catch (error) {
@@ -251,13 +248,13 @@ export function registerSchemaTools(server: McpServer): void {
     {
       description: 'Get a specific schema version by its ID',
       inputSchema: {
-        versionId: ZSchemaVersion,
+        schemaVersionId: ZSchemaVersionId,
       },
     },
-    async ({ versionId }) => {
+    async ({ schemaVersionId }) => {
       try {
         const result = await SchemasService.getSchemaVersion({
-          versionId: versionId,
+          versionId: schemaVersionId,
         });
         return ok(result);
       } catch (error) {
@@ -271,31 +268,17 @@ export function registerSchemaTools(server: McpServer): void {
     {
       description: 'List schema versions with optional filters',
       inputSchema: {
-        applicationDomainId: ZApplicationDomainId.optional(),
-        applicationDomainIds: z.array(ZApplicationDomainId).optional(),
-        name: ZSchemaName.optional(),
-        schemaType: ZSchemaType.optional(),
-        shared: ZShared.optional(),
+        schemaIds: z.array(ZSchemaId).optional(),
+        schemaVersionIds: z.array(ZSchemaVersionId).optional(),
         pageNumber: ZPageNumber.optional(),
         pageSize: ZPageSize.optional(),
       },
     },
-    async ({
-      applicationDomainId,
-      applicationDomainIds,
-      name,
-      schemaType,
-      shared,
-      pageNumber,
-      pageSize,
-    }) => {
+    async ({ schemaIds, schemaVersionIds, pageNumber, pageSize }) => {
       try {
-        const result = await SchemasService.getSchemas({
-          applicationDomainId,
-          applicationDomainIds,
-          name,
-          schemaType,
-          shared,
+        const result = await SchemasService.getSchemaVersions({
+          ids: schemaVersionIds,
+          schemaIds,
           pageNumber,
           pageSize,
         });

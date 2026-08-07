@@ -1,19 +1,25 @@
-import { ApplicationsService } from '@solace-labs/ep-openapi-node';
+import { ApplicationsService, ConsumersService } from '@solace-labs/ep-openapi-node';
 import { config } from '../config';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { err, ok } from './helpers';
 import { z } from 'zod';
 import { ZApplicationDomainId } from '../schemas/ApplicationDomain.schema';
-import { ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
+import { ZBrokerType, ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
 import {
   ZApplicationBrokerType,
+  ZApplicationConsumerName,
+  ZApplicationConsumerType,
   ZApplicationDescription,
   ZApplicationDisplayName,
   ZApplicationId,
   ZApplicationName,
   ZApplicationType,
   ZApplicationVersion,
+  ZApplicationVersionId,
+  ZConsumerId,
+  ZSubscription,
 } from '../schemas/Application.schema';
+import { ZEventVersion, ZEventVersionId } from '../schemas/Event.schema';
 
 export function registerApplicationTools(server: McpServer): void {
   if (config.tools.allow_create) {
@@ -23,8 +29,8 @@ export function registerApplicationTools(server: McpServer): void {
         description: 'Create a new application',
         inputSchema: {
           applicationDomainId: ZApplicationDomainId,
-          applicationType: ZApplicationType,
           name: ZApplicationName,
+          applicationType: ZApplicationType,
           brokerType: ZApplicationBrokerType,
         },
       },
@@ -52,11 +58,31 @@ export function registerApplicationTools(server: McpServer): void {
         inputSchema: {
           applicationId: ZApplicationId,
           version: ZApplicationVersion,
-          description: ZApplicationDescription.optional(),
           displayName: ZApplicationDisplayName.optional(),
+          description: ZApplicationDescription.optional(),
+          producedEventVersionIds: z.array(ZEventVersion).optional(),
+          consumedEventVersionIds: z.array(ZEventVersion).optional(),
+          // consumers: z
+          //   .array(
+          //     z.object({
+          //       name: ZApplicationConsumerName,
+          //       brokerType: ZBrokerType,
+          //       consumerType: ZApplicationConsumerType,
+          //       subscriptions: z.array(ZSubscription).optional(),
+          //     }),
+          //   )
+          //   .optional(),
         },
       },
-      async ({ applicationId, version, description, displayName }) => {
+      async ({
+        applicationId,
+        version,
+        description,
+        displayName,
+        producedEventVersionIds,
+        consumedEventVersionIds,
+        // consumers
+      }) => {
         try {
           const result = await ApplicationsService.createApplicationVersion({
             requestBody: {
@@ -64,6 +90,50 @@ export function registerApplicationTools(server: McpServer): void {
               version,
               description,
               displayName,
+              declaredProducedEventVersionIds: producedEventVersionIds,
+              declaredConsumedEventVersionIds: consumedEventVersionIds,
+              //  consumers: consumers?.map(({brokerType, consumerType, name, subscriptions}) => ({
+              //    // TODO: Check back on me
+              //    applicationVersionId: version,
+              //    name,
+              //    brokerType,
+              //    consumerType,
+              //    subscriptions: [{
+              //     //  attractedEventVersionIds: "",
+              //      subscriptionType: "",
+              //      value: "",
+              //    }]
+              //  }))
+            },
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'create_application_consumer',
+      {
+        description: '',
+        inputSchema: {
+          applicationVersionId: ZApplicationVersionId,
+          name: ZApplicationConsumerName,
+          brokerType: ZBrokerType,
+          consumerType: ZApplicationConsumerType,
+          subscriptions: z.array(ZSubscription).optional(),
+        },
+      },
+      async ({ applicationVersionId, name, brokerType, consumerType, subscriptions }) => {
+        try {
+          const result = await ConsumersService.createConsumer({
+            requestBody: {
+              applicationVersionId,
+              brokerType,
+              consumerType,
+              name,
+              subscriptions: subscriptions,
             },
           });
           return ok(result);
@@ -110,22 +180,90 @@ export function registerApplicationTools(server: McpServer): void {
       {
         description: 'Update an existing application version',
         inputSchema: {
-          versionId: ZApplicationVersion,
+          applicationVersionId: ZApplicationVersionId,
           applicationId: ZApplicationId,
           version: ZApplicationVersion,
           description: ZApplicationDescription.optional(),
           displayName: ZApplicationDisplayName.optional(),
+          producedEventVersionIds: z.array(ZEventVersionId).optional(),
+          consumedEventVersionIds: z.array(ZEventVersionId).optional(),
         },
       },
-      async ({ versionId, applicationId, version, description, displayName }) => {
+      async ({
+        applicationVersionId,
+        applicationId,
+        version,
+        displayName,
+        description,
+        consumedEventVersionIds,
+        producedEventVersionIds,
+      }) => {
         try {
+          console.dir(
+            {
+              versionId: applicationVersionId,
+              requestBody: {
+                applicationId,
+                version,
+                displayName,
+                description,
+                declaredConsumedEventVersionIds: consumedEventVersionIds,
+                declaredProducedEventVersionIds: producedEventVersionIds,
+                consumers: [],
+              },
+            },
+            { depth: 5 },
+          );
+
           const result = await ApplicationsService.updateApplicationVersion({
-            versionId: versionId,
+            versionId: applicationVersionId,
             requestBody: {
               applicationId,
               version,
-              description,
               displayName,
+              description,
+              declaredConsumedEventVersionIds: consumedEventVersionIds,
+              declaredProducedEventVersionIds: producedEventVersionIds,
+              consumers: [],
+            },
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'update_application_consumer',
+      {
+        description: 'Update an consumer and maintain subscriptions of an application consumer',
+        inputSchema: {
+          consumerId: ZConsumerId,
+          applicationVersionId: ZApplicationVersionId,
+          name: ZApplicationConsumerName,
+          brokerType: ZBrokerType,
+          consumerType: ZApplicationConsumerType,
+          subscriptions: z.array(ZSubscription).optional(),
+        },
+      },
+      async ({
+        consumerId,
+        applicationVersionId,
+        name,
+        brokerType,
+        consumerType,
+        subscriptions,
+      }) => {
+        try {
+          const result = await ConsumersService.updateConsumer({
+            id: consumerId,
+            requestBody: {
+              applicationVersionId,
+              brokerType,
+              consumerType,
+              name,
+              subscriptions,
             },
           });
           return ok(result);
@@ -169,6 +307,26 @@ export function registerApplicationTools(server: McpServer): void {
         try {
           const result = await ApplicationsService.deleteApplicationVersion({
             versionId: versionId,
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'delete_application_consumer',
+      {
+        description: 'Delete an application consumer by its ID',
+        inputSchema: {
+          consumerId: ZConsumerId,
+        },
+      },
+      async ({ consumerId }) => {
+        try {
+          const result = await ConsumersService.deleteConsumer({
+            id: consumerId,
           });
           return ok(result);
         } catch (error) {
@@ -231,13 +389,13 @@ export function registerApplicationTools(server: McpServer): void {
     {
       description: 'Get a specific application version by its ID',
       inputSchema: {
-        versionId: ZApplicationVersion,
+        applicationVersionId: ZApplicationVersionId,
       },
     },
-    async ({ versionId }) => {
+    async ({ applicationVersionId }) => {
       try {
         const result = await ApplicationsService.getApplicationVersion({
-          versionId: versionId,
+          versionId: applicationVersionId,
         });
         return ok(result);
       } catch (error) {
@@ -251,17 +409,63 @@ export function registerApplicationTools(server: McpServer): void {
     {
       description: 'List application versions with optional filters',
       inputSchema: {
-        versionIds: z.array(ZApplicationVersion).optional(),
+        applicationVersionIds: z.array(ZApplicationVersion).optional(),
         applicationIds: z.array(ZApplicationId).optional(),
         pageNumber: ZPageNumber.optional(),
         pageSize: ZPageSize.optional(),
       },
     },
-    async ({ versionIds, applicationIds, pageNumber, pageSize }) => {
+    async ({ applicationVersionIds, applicationIds, pageNumber, pageSize }) => {
       try {
         const result = await ApplicationsService.getApplicationVersions({
-          ids: versionIds,
+          ids: applicationVersionIds,
           applicationIds: applicationIds,
+          pageNumber,
+          pageSize,
+        });
+        return ok(result);
+      } catch (error) {
+        return err(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'get_application_consumer',
+    {
+      description: 'Get a specific application consumer by its ID',
+      inputSchema: {
+        consumerId: ZConsumerId,
+      },
+    },
+    async ({ consumerId }) => {
+      try {
+        const result = await ConsumersService.getConsumer({
+          id: consumerId,
+        });
+        return ok(result);
+      } catch (error) {
+        return err(error);
+      }
+    },
+  );
+
+  server.registerTool(
+    'get_application_consumers',
+    {
+      description: 'List application consumers with optional filters',
+      inputSchema: {
+        versionIds: z.array(ZApplicationVersion).optional(),
+        applicationVersionIds: z.array(ZApplicationVersionId).optional(),
+        pageNumber: ZPageNumber.optional(),
+        pageSize: ZPageSize.optional(),
+      },
+    },
+    async ({ versionIds, applicationVersionIds, pageNumber, pageSize }) => {
+      try {
+        const result = await ConsumersService.getConsumers({
+          ids: versionIds,
+          applicationVersionIds,
           pageNumber,
           pageSize,
         });

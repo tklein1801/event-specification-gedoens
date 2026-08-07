@@ -115,3 +115,11 @@ The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint,
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Known issues
+
+- Das Solace EP SDK nicht ganz aktuell (verwendete Version ~2 Jahre alt) und besitzt leider in manchen Bereichen nicht die aktuellsten Payloads und Features.
+
+### Events
+
+- Beim erstellen und aktualisieren eines Events wird der `brokerType` nicht korrekt gesetzt und bleibt immer leer.

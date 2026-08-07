@@ -1,4 +1,6 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+// import { ApiError } from '@solace-labs/ep-openapi-node';
+import { logger } from '../lib/logger';
 
 /**
  * Wraps a value as an MCP text content result.
@@ -12,5 +14,7 @@ export function ok(data: unknown): CallToolResult {
  */
 export function err(error: unknown): CallToolResult {
   const message = error instanceof Error ? error.message : String(error);
+  // const isApiError = error instanceof ApiError;
+  logger.error('Error: %s %o', message, error);
   return { isError: true, content: [{ type: 'text', text: `Error: ${message}` }] };
 }
