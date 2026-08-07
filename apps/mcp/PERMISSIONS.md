@@ -22,6 +22,22 @@
 
 - `event_designer:access`
 
+### `create_topic_domain`
+
+- `topic_domain:create:*`
+
+### `delete_application_topic_domain`
+
+- `topic_domain:delete:*`
+
+### `get_topic_domain`
+
+- `topic_domain:get:*`
+
+### `get_topic_domains`
+
+- `event_designer:access`
+
 ## Applications
 
 ### `create_application`

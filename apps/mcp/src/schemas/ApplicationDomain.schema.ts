@@ -13,3 +13,8 @@ export const ZTopicDomainEnforcementEnabled = z
 export const ZUniqueTopicAddressEnforcementEnabled = z
   .boolean()
   .describe('Forces all topic addresses within the application domain to be unique.');
+
+export const ZTopicDomainId = z.string().describe('The ID of the topic domain.');
+export const ZDomainTopic = z
+  .string()
+  .describe('/-separated topic domain string. Example: "tchibo/sap/ae"');
