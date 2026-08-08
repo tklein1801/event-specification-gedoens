@@ -1,6 +1,6 @@
 import { createLogger, format, transports } from 'winston';
 import { EpSdkConsoleLogger, EEpSdkLogLevel } from '@solace-labs/ep-sdk';
-import { config } from '../config';
+import { config } from '../appConfig';
 import { type LogLevel } from './getLogLevel';
 
 const formats = {

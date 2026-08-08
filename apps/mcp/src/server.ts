@@ -6,7 +6,7 @@ import { OpenAPI as EpRtOpenApi } from '@solace-labs/ep-rt-openapi-node';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import cors from 'cors';
 import express from 'express';
-import { config } from './config';
+import { config } from './appConfig';
 import { runWithRequestAuthContext, type RequestAuthContext } from './lib/requestAuth';
 import { apiKeyMiddleware, handleError, logRequest, rateLimitMiddleware } from './middleware';
 import { registerAllTools } from './tools';

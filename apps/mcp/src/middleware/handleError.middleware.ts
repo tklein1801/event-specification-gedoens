@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { config } from '../config';
+import { config } from '../appConfig';
 import { logger } from '../lib/logger';
 import { getErrorDetails } from '../lib/toolLogging';
 
