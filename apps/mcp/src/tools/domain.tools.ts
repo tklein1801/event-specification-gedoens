@@ -3,7 +3,7 @@ import {
   TopicDomainsService,
   AddressLevel,
 } from '@solace-labs/ep-openapi-node';
-import { config } from '../config';
+import { config } from '../appConfig';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { err, ok } from './helpers';
 import {
