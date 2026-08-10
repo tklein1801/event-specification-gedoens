@@ -1,6 +1,6 @@
 {
   "name": "@tklein1801/esg-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP (Model Context Protocol) service for ESG",
   "license": "MIT",
   "main": "dist/src/server.js",
