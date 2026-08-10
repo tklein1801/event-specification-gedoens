@@ -61,4 +61,24 @@ export class Config {
   setLogLevel(logLevel: LogLevel) {
     this._logLevel = logLevel;
   }
+
+  enableTools({
+    allow_create,
+    allow_update,
+    allow_delete,
+  }: {
+    allow_create?: boolean;
+    allow_update?: boolean;
+    allow_delete?: boolean;
+  }) {
+    if (allow_create !== undefined) {
+      this._tools.allow_create = allow_create;
+    }
+    if (allow_update !== undefined) {
+      this._tools.allow_update = allow_update;
+    }
+    if (allow_delete !== undefined) {
+      this._tools.allow_delete = allow_delete;
+    }
+  }
 }
