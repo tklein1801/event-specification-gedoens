@@ -53,7 +53,7 @@ export function registerSchemaTools(server: McpServer): void {
         description: 'Create a new version of a schema',
         inputSchema: {
           schemaId: ZSchemaId,
-          version: ZSchemaVersion,
+          version: ZSchemaVersionId,
           displayName: ZSchemaDisplayName.optional(),
           description: ZSchemaDescription.optional(),
           content: ZSchemaContent.optional(),
@@ -116,18 +116,19 @@ export function registerSchemaTools(server: McpServer): void {
         inputSchema: {
           schemaId: ZSchemaId,
           schemaVersionId: ZSchemaVersionId,
+          version: ZSchemaVersion,
           displayName: ZSchemaDisplayName.optional(),
           description: ZSchemaDescription.optional(),
           content: ZSchemaContent.optional(),
         },
       },
-      async ({ schemaId, schemaVersionId, content, description, displayName }) => {
+      async ({ schemaId, schemaVersionId, version, content, description, displayName }) => {
         try {
           const result = await SchemasService.updateSchemaVersion({
-            id: schemaId,
+            id: schemaVersionId,
             requestBody: {
               schemaId,
-              version: schemaVersionId,
+              version,
               content,
               description,
               displayName,
