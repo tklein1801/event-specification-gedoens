@@ -3,8 +3,8 @@
   "version": "1.1.1",
   "description": "MCP (Model Context Protocol) service for ESG",
   "license": "MIT",
-  "main": "dist/src/server.js",
-  "types": "dist/src/server.d.ts",
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/tklein1801/event-specification-gedoens.git"
@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/tklein1801/event-specification-gedoens#readme",
   "bin": {
-    "esg-mcp": "./dist/src/server.js"
+    "esg-mcp": "./dist/server.js"
   },
   "files": [
     "dist",
@@ -25,7 +25,7 @@
     "access": "public"
   },
   "scripts": {
-    "start": "node dist/src/server.js",
+    "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
     "build": "npx rimraf dist && npx tsc",
     "pretest": "npm run check",
