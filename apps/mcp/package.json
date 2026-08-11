@@ -14,7 +14,7 @@
   },
   "homepage": "https://github.com/tklein1801/event-specification-gedoens#readme",
   "bin": {
-    "esg-mcp": "./dist/server.js"
+    "esg-mcp": "./dist/cli.js"
   },
   "files": [
     "dist",
