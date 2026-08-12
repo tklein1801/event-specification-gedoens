@@ -6,7 +6,7 @@
       "./scripts/semantic-release-paths.cjs",
       {
         "preset": "conventionalcommits",
-        "paths": ["apps/mcp", "package.json", "package-lock.json"],
+        "paths": ["apps/mcp", "packages/migration-core", "package.json", "package-lock.json"],
         "releaseRules": [
           {
             "type": "feat",
