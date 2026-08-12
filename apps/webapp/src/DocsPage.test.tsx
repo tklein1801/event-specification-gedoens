@@ -57,6 +57,7 @@ describe('documentation embedding', () => {
 
   it('statically embeds every Markdown document from docs', () => {
     expect(documentation.map((doc) => doc.slug)).toEqual([
+      'mcp',
       'migrate-command',
       'structured-vs-unstructured',
       'versioning',
