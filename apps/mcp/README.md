@@ -1,43 +1,153 @@
 # @tklein1801/esg-mcp
 
-MCP (Model Context Protocol) service for Event Specification Management (ESG). It exposes CRUD operations for Applications, Application Domains, Events, and Schemas plus local AsyncAPI migrations as AI-callable tools over a Streamable-HTTP endpoint served by Express.
+MCP (Model Context Protocol) service for Event Specification Management (ESG). Exposes CRUD operations for Applications, Application Domains, Events, and Schemas as AI-callable tools over a Streamable-HTTP endpoint served by Express.
 
-## Installation
-
-```bash
-npm install @tklein1801/esg-mcp
-```
-
-## Usage
-
-Build and start the service from the repository workspace:
+## Quick Start
 
 ```bash
-npm run build --workspace @tklein1801/esg-mcp
-npm start --workspace @tklein1801/esg-mcp
+# Build and start locally
+npm install
+npm run build
+npm start
+
+# Or run in development mode with hot-reload
+npm run dev
 ```
 
-The service exposes the MCP endpoint at `POST /mcp`. Requests must include either an `Authorization: Bearer <token>` or `X-Api-Key: <api-key>` header.
+## Environment Variables
+
+| Variable       | Required | Description                                           | Default       |
+| :------------- | :------: | :---------------------------------------------------- | :------------ |
+| `PORT`         |    –     | HTTP port the service listens on                      | `3070`        |
+| `NODE_ENV`     |    –     | Runtime environment (`production` enables rate-limit) | `development` |
+| `LOG_LEVEL`    |    –     | Winston log level (`error`, `warn`, `info`, `debug`)  | `info`        |
+| `ALLOW_CREATE` |    –     | Enable create tools (`true`/`false`)                  | `false`       |
+| `ALLOW_UPDATE` |    –     | Enable update tools (`true`/`false`)                  | `false`       |
+| `ALLOW_DELETE` |    –     | Enable delete tools (`true`/`false`)                  | `false`       |
+
+### Tool Toggles
+
+Create, update, and delete tools are **disabled by default**. Set the respective environment variable to `true` to enable them:
+
+```bash
+ALLOW_CREATE=true ALLOW_UPDATE=true ALLOW_DELETE=true npm start
+```
+
+## Authentication
+
+Authentication for `/mcp` must be provided per request via either:
+
+- `Authorization` header with a Bearer access token
+- `X-Api-Key` header with an API key
+
+Requests without valid authentication receive a `401 Unauthorized` response.
+
+## Health Endpoint
+
+```
+GET /status # or /api/status
+GET /health # or /api/health
+```
+
+Returns `{ "status": "ok" }` with HTTP 200.
+
+## MCP Endpoint
+
+The service exposes a single MCP-over-HTTP endpoint:
+
+```
+POST   /mcp  – JSON-RPC request
+GET    /mcp  – SSE stream for server-initiated messages
+DELETE /mcp  – close session
+```
+
+The endpoint is **stateless** — each request creates a fresh MCP server and transport instance scoped to the authenticated context.
+
+### Claude Desktop Configuration
+
+```json
+{
+  "mcpServers": {
+    "esg": {
+      "url": "http://localhost:3070/mcp",
+      "headers": {
+        "x-api-key": "<your-api-key>"
+      }
+    }
+  }
+}
+```
+
+## Rate Limiting
+
+Rate limiting is **only active in production** (`NODE_ENV=production`). By default it allows 120 requests per minute per IP address on the `/mcp` endpoint.
 
 ## Available Tools
 
-The package provides read-only tools for applications, application domains, events, and schemas. Create, update, and delete tools are disabled by default and can be enabled with `ALLOW_CREATE`, `ALLOW_UPDATE`, and `ALLOW_DELETE`.
+All tools are grouped by domain. Read-only tools (`get_*`, list operations) are always available. Mutation tools (`create_*`, `update_*`, `delete_*`) must be explicitly enabled via environment variables.
 
-The always-available `migrate_asyncapi` tool converts YAML or JSON AsyncAPI specifications between structured and unstructured CloudEvents:
+### Applications
 
-- `to-structured`: AsyncAPI 2.x / unstructured → AsyncAPI 3.x / structured
-- `to-unstructured`: AsyncAPI 3.x / structured → AsyncAPI 2.x / unstructured
+| Tool                         | Availability   | Description                                 |
+| :--------------------------- | :------------- | :------------------------------------------ |
+| `get_application`            | Always         | Get a specific application by its ID        |
+| `get_applications`           | Always         | List all applications with optional filters |
+| `get_application_version`    | Always         | Get a specific application version by ID    |
+| `get_applications_versions`  | Always         | List application versions with filters      |
+| `create_application`         | `ALLOW_CREATE` | Create a new application                    |
+| `create_application_version` | `ALLOW_CREATE` | Create a new version of an application      |
+| `update_application`         | `ALLOW_UPDATE` | Update an existing application              |
+| `update_application_version` | `ALLOW_UPDATE` | Update an existing application version      |
+| `delete_application`         | `ALLOW_DELETE` | Delete an application by its ID             |
+| `delete_application_version` | `ALLOW_DELETE` | Delete an application version by its ID     |
 
-It accepts `content`, `action`, and an optional `format` (`yaml` or `json`) and uses the same migration core as the webapp and CLI.
+### Application Domains
 
-## Documentation
+| Tool                        | Availability   | Description                                 |
+| :-------------------------- | :------------- | :------------------------------------------ |
+| `get_application_domain`    | Always         | Get a specific application domain by its ID |
+| `get_application_domains`   | Always         | List all application domains with filters   |
+| `create_application_domain` | `ALLOW_CREATE` | Create a new application domain             |
+| `update_application_domain` | `ALLOW_UPDATE` | Update an existing application domain       |
+| `delete_application_domain` | `ALLOW_DELETE` | Delete an application domain by ID          |
 
-See the complete MCP service reference, including configuration, endpoints, authentication, and all available tools:
+### Events
 
-- [MCP service reference](https://github.com/tklein1801/event-specification-gedoens/blob/main/docs/mcp.md)
+| Tool                   | Availability   | Description                            |
+| :--------------------- | :------------- | :------------------------------------- |
+| `get_event`            | Always         | Get a specific event by its ID         |
+| `get_events`           | Always         | List events with optional filters      |
+| `get_event_version`    | Always         | Get a specific event version by its ID |
+| `get_event_versions`   | Always         | List event versions with filters       |
+| `create_event`         | `ALLOW_CREATE` | Create a new event                     |
+| `create_event_version` | `ALLOW_CREATE` | Create a new version of an event       |
+| `update_event`         | `ALLOW_UPDATE` | Update an existing event               |
+| `update_event_version` | `ALLOW_UPDATE` | Update an existing event version       |
+| `delete_event`         | `ALLOW_DELETE` | Delete an event by its ID              |
+| `delete_event_version` | `ALLOW_DELETE` | Delete an event version by its ID      |
 
-For local development, the same documentation is available at [`../../docs/mcp.md`](../../docs/mcp.md).
+### Schemas
 
-## License
+| Tool                    | Availability   | Description                             |
+| :---------------------- | :------------- | :-------------------------------------- |
+| `get_schema`            | Always         | Get a specific schema by its ID         |
+| `get_schemas`           | Always         | List schemas with optional filters      |
+| `get_schema_version`    | Always         | Get a specific schema version by its ID |
+| `get_schema_versions`   | Always         | List schema versions with filters       |
+| `create_schema`         | `ALLOW_CREATE` | Create a new schema                     |
+| `create_schema_version` | `ALLOW_CREATE` | Create a new version of a schema        |
+| `update_schema`         | `ALLOW_UPDATE` | Update an existing schema               |
+| `update_schema_version` | `ALLOW_UPDATE` | Update an existing schema version       |
+| `delete_schema`         | `ALLOW_DELETE` | Delete a schema by its ID               |
+| `delete_schema_version` | `ALLOW_DELETE` | Delete a schema version by its ID       |
 
-This project is licensed under the [MIT License](../../LICENSE).
+## Development
+
+```bash
+npm run dev         # start with hot-reload (tsx watch)
+npm run build       # compile TypeScript to ./build
+npm start           # run compiled build
+npm test            # run unit tests (preceded by lint & format check)
+npm run check       # lint + format check
+npm run check:write # auto-fix lint + format
+```
