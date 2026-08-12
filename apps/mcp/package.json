@@ -39,10 +39,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@drizzle-team/brocli": "^0.11.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@solace-labs/ep-openapi-node": "^3.0.0",
     "@solace-labs/ep-rt-openapi-node": "^1.1.0",
     "@solace-labs/ep-sdk": "^0.63.0",
+    "chalk": "^5.6.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
