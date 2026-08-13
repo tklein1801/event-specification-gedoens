@@ -1,12 +1,13 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Request } from 'express';
+import { logger } from './logger';
 
-type AuthHeaderName = 'authorization' | 'x-api-key';
-type AuthMethod = 'bearer-token' | 'api-key';
+type AuthSource = 'authorization' | 'x-api-key' | 'environment';
+type AuthMethod = 'bearer-token' | 'api-key' | 'environment-token';
 
 export type RequestAuthContext = {
   token: string;
-  headerName: AuthHeaderName;
+  headerName: AuthSource;
   authMethod: AuthMethod;
   actor: string;
 };
@@ -45,23 +46,42 @@ function getBearerToken(authorizationHeader: string | null): string | null {
 }
 
 export function extractRequestAuth(req: Pick<Request, 'headers'>): RequestAuthContext | null {
+  const environmentToken = process.env.SOLACE_CLOUD_TOKEN?.trim();
   const apiKey = getHeaderValue(req.headers['x-api-key']);
   if (apiKey) {
-    return {
-      token: apiKey,
-      headerName: 'x-api-key',
-      authMethod: 'api-key',
-      actor: getActorFingerprint(apiKey),
-    };
+    warnIfEnvironmentTokenOverridden(environmentToken, 'X-Api-Key');
+    return createAuthContext(apiKey, 'x-api-key', 'api-key');
   }
 
   const bearerToken = getBearerToken(getHeaderValue(req.headers.authorization));
-  if (!bearerToken) return null;
+  if (bearerToken) {
+    warnIfEnvironmentTokenOverridden(environmentToken, 'Authorization');
+    return createAuthContext(bearerToken, 'authorization', 'bearer-token');
+  }
 
+  if (!environmentToken) return null;
+
+  return createAuthContext(environmentToken, 'environment', 'environment-token');
+}
+
+function warnIfEnvironmentTokenOverridden(
+  environmentToken: string | undefined,
+  headerName: string,
+) {
+  if (!environmentToken) return;
+
+  logger.warn('MCP request authentication header %s overrides SOLACE_CLOUD_TOKEN.', headerName);
+}
+
+function createAuthContext(
+  token: string,
+  headerName: AuthSource,
+  authMethod: AuthMethod,
+): RequestAuthContext {
   return {
-    token: bearerToken,
-    headerName: 'authorization',
-    authMethod: 'bearer-token',
-    actor: getActorFingerprint(bearerToken),
+    token,
+    headerName,
+    authMethod,
+    actor: getActorFingerprint(token),
   };
 }

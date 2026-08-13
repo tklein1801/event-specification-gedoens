@@ -17,7 +17,7 @@ npm run build --workspace @tklein1801/esg-mcp
 npm start --workspace @tklein1801/esg-mcp
 ```
 
-The service exposes the MCP endpoint at `POST /mcp`. Requests must include either an `Authorization: Bearer <token>` or `X-Api-Key: <api-key>` header.
+The service exposes the MCP endpoint at `POST /mcp`. Requests can include an `Authorization: Bearer <token>` or `X-Api-Key: <api-key>` header. Alternatively, configure `SOLACE_CLOUD_TOKEN` when starting the service. Request headers take precedence over the environment variable.
 
 ## Available Tools
 

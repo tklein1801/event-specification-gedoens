@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { RequestAuthContext } from '../lib/requestAuth';
 import { apiKeyMiddleware } from '../middleware/apiKey.middleware';
 
@@ -14,6 +14,10 @@ function makeRes(): Response {
 }
 
 describe('apiKeyMiddleware', () => {
+  afterEach(() => {
+    delete process.env.SOLACE_CLOUD_TOKEN;
+  });
+
   it('accepts an API key and stores request auth context', () => {
     const next = vi.fn() as NextFunction;
     const res = makeRes();
@@ -68,5 +72,35 @@ describe('apiKeyMiddleware', () => {
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('accepts SOLACE_CLOUD_TOKEN when no request credentials are present', () => {
+    process.env.SOLACE_CLOUD_TOKEN = 'cloud-token';
+    const next = vi.fn() as NextFunction;
+    const res = makeRes();
+
+    apiKeyMiddleware(makeReq(), res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.locals.requestAuth).toMatchObject<Partial<RequestAuthContext>>({
+      token: 'cloud-token',
+      authMethod: 'environment-token',
+      headerName: 'environment',
+    });
+  });
+
+  it('prefers an Authorization header over SOLACE_CLOUD_TOKEN', () => {
+    process.env.SOLACE_CLOUD_TOKEN = 'cloud-token';
+    const next = vi.fn() as NextFunction;
+    const res = makeRes();
+
+    apiKeyMiddleware(makeReq({ authorization: 'Be' + 'arer header-token' }), res, next);
+
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.locals.requestAuth).toMatchObject<Partial<RequestAuthContext>>({
+      token: 'header-token',
+      authMethod: 'bearer-token',
+      headerName: 'authorization',
+    });
   });
 });

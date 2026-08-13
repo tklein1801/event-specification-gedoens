@@ -18,14 +18,15 @@ Run these commands from the repository root with the corresponding npm workspace
 
 ## Environment Variables
 
-| Variable       | Required | Description                                           | Default       |
-| :------------- | :------: | :---------------------------------------------------- | :------------ |
-| `PORT`         |    –     | HTTP port the service listens on                      | `3070`        |
-| `NODE_ENV`     |    –     | Runtime environment (`production` enables rate-limit) | `development` |
-| `LOG_LEVEL`    |    –     | Winston log level (`error`, `warn`, `info`, `debug`)  | `info`        |
-| `ALLOW_CREATE` |    –     | Enable create tools (`true`/`false`)                  | `false`       |
-| `ALLOW_UPDATE` |    –     | Enable update tools (`true`/`false`)                  | `false`       |
-| `ALLOW_DELETE` |    –     | Enable delete tools (`true`/`false`)                  | `false`       |
+| Variable             | Required | Description                                           | Default       |
+| :------------------- | :------: | :---------------------------------------------------- | :------------ |
+| `PORT`               |    –     | HTTP port the service listens on                      | `3070`        |
+| `NODE_ENV`           |    –     | Runtime environment (`production` enables rate-limit) | `development` |
+| `LOG_LEVEL`          |    –     | Winston log level (`error`, `warn`, `info`, `debug`)  | `info`        |
+| `SOLACE_CLOUD_TOKEN` |    –     | Fallback token for authenticating MCP requests        | –             |
+| `ALLOW_CREATE`       |    –     | Enable create tools (`true`/`false`)                  | `false`       |
+| `ALLOW_UPDATE`       |    –     | Enable update tools (`true`/`false`)                  | `false`       |
+| `ALLOW_DELETE`       |    –     | Enable delete tools (`true`/`false`)                  | `false`       |
 
 ### Tool Toggles
 
@@ -37,12 +38,19 @@ ALLOW_CREATE=true ALLOW_UPDATE=true ALLOW_DELETE=true npm start
 
 ## Authentication
 
-Authentication for `/mcp` must be provided per request via either:
+Authentication for `/mcp` can be configured with a token per request or, as a fallback, when starting the MCP server:
 
 - `Authorization` header with a Bearer access token
 - `X-Api-Key` header with an API key
+- `SOLACE_CLOUD_TOKEN` environment variable
 
-Requests without valid authentication receive a `401 Unauthorized` response.
+Request headers take precedence over `SOLACE_CLOUD_TOKEN`. If both request headers are present, `X-Api-Key` takes precedence over `Authorization`. Requests without valid authentication receive a `401 Unauthorized` response.
+
+For example, start the server with a default token:
+
+```bash
+SOLACE_CLOUD_TOKEN=<your-token> npm start --workspace @tklein1801/esg-mcp
+```
 
 ## Health Endpoint
 

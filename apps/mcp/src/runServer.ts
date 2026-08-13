@@ -84,7 +84,7 @@ export function runServer(config: Config) {
       'Log Level': config.logLevel,
       'Node Version': process.version,
       'Server Port': config.port,
-      'Auth Headers': 'Authorization, X-Api-Key',
+      'Auth Sources': 'Authorization, X-Api-Key, SOLACE_CLOUD_TOKEN',
     };
     console.table(options);
 
