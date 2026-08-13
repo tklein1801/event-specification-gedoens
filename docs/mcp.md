@@ -16,6 +16,15 @@ npm run dev
 
 Run these commands from the repository root with the corresponding npm workspace commands when necessary, for example `npm run build --workspace @tklein1801/esg-mcp`.
 
+The CLI `run` command supports two transports. HTTP is the default:
+
+```bash
+npx esg-mcp run --type http --port 3070
+SOLACE_CLOUD_TOKEN=<your-token> npx esg-mcp run --type stdio
+```
+
+The stdio transport uses only `SOLACE_CLOUD_TOKEN` for authentication. HTTP keeps the request-header authentication flow.
+
 ## Environment Variables
 
 | Variable             | Required | Description                                           | Default       |
@@ -72,6 +81,38 @@ DELETE /mcp  – close session
 ```
 
 The endpoint is **stateless** — each request creates a fresh MCP server and transport instance scoped to the authenticated context.
+
+### Claude Code Configuration
+
+Claude Code can configure both transports in `.mcp.json` at the project root. The HTTP server must be started separately:
+
+```bash
+SOLACE_CLOUD_TOKEN=<your-token> npx esg-mcp run --type http --port 3070
+```
+
+```json
+{
+  "mcpServers": {
+    "esg-http": {
+      "type": "http",
+      "url": "http://localhost:3070/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SOLACE_CLOUD_TOKEN}"
+      }
+    },
+    "esg-stdio": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["esg-mcp", "run", "--type", "stdio"],
+      "env": {
+        "SOLACE_CLOUD_TOKEN": "<your-token>"
+      }
+    }
+  }
+}
+```
+
+For the HTTP entry, Claude Code sends the token as an `Authorization` header. For the Stdio entry, Claude Code starts the MCP service and passes `SOLACE_CLOUD_TOKEN` as an environment variable. The Stdio transport accepts no request headers and requires this environment variable.
 
 ### Claude Desktop Configuration
 

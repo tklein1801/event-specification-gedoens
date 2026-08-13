@@ -3,4 +3,4 @@
 import { runServer } from './runServer';
 import { config } from './appConfig';
 
-runServer(config);
+void runServer(config);

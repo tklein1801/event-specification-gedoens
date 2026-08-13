@@ -17,7 +17,41 @@ npm run build --workspace @tklein1801/esg-mcp
 npm start --workspace @tklein1801/esg-mcp
 ```
 
-The service exposes the MCP endpoint at `POST /mcp`. Requests can include an `Authorization: Bearer <token>` or `X-Api-Key: <api-key>` header. Alternatively, configure `SOLACE_CLOUD_TOKEN` when starting the service. Request headers take precedence over the environment variable.
+The CLI starts the service with HTTP transport by default. Requests can include an `Authorization: Bearer <token>` or `X-Api-Key: <api-key>` header. Alternatively, configure `SOLACE_CLOUD_TOKEN` when starting the service. Request headers take precedence over the environment variable.
+
+```bash
+# Streamable HTTP (default)
+npx esg-mcp run --type http --port 3070
+
+# Stdio for MCP clients such as Claude Desktop
+SOLACE_CLOUD_TOKEN=<your-token> npx esg-mcp run --type stdio
+```
+
+The `stdio` transport requires `SOLACE_CLOUD_TOKEN` and does not accept request-header authentication. The HTTP transport keeps the authentication flow described below.
+
+For Claude Code, add both transports to a project-level `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "esg-http": {
+      "type": "http",
+      "url": "http://localhost:3070/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SOLACE_CLOUD_TOKEN}"
+      }
+    },
+    "esg-stdio": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["esg-mcp", "run", "--type", "stdio"],
+      "env": {
+        "SOLACE_CLOUD_TOKEN": "<your-token>"
+      }
+    }
+  }
+}
+```
 
 ## Available Tools
 

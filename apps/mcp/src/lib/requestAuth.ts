@@ -64,6 +64,13 @@ export function extractRequestAuth(req: Pick<Request, 'headers'>): RequestAuthCo
   return createAuthContext(environmentToken, 'environment', 'environment-token');
 }
 
+export function getEnvironmentAuth(): RequestAuthContext | null {
+  const environmentToken = process.env.SOLACE_CLOUD_TOKEN?.trim();
+  if (!environmentToken) return null;
+
+  return createAuthContext(environmentToken, 'environment', 'environment-token');
+}
+
 function warnIfEnvironmentTokenOverridden(
   environmentToken: string | undefined,
   headerName: string,
