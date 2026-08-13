@@ -2,17 +2,48 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { EpSdkClient } from '@solace-labs/ep-sdk';
 import { OpenAPI as EpOpenApi } from '@solace-labs/ep-openapi-node';
 import { OpenAPI as EpRtOpenApi } from '@solace-labs/ep-rt-openapi-node';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import cors from 'cors';
 import express from 'express';
 import type { Config } from './lib/config';
-import { runWithRequestAuthContext, type RequestAuthContext } from './lib/requestAuth';
+import {
+  getEnvironmentAuth,
+  runWithRequestAuthContext,
+  type RequestAuthContext,
+} from './lib/requestAuth';
 import { apiKeyMiddleware, handleError, logRequest, rateLimitMiddleware } from './middleware';
 import { registerAllTools } from './tools';
 import { logger } from './lib/logger';
 import { getToolCall, runWithToolLoggingContext } from './lib/toolLogging';
+import { createHttpTransport, createTransport, type TransportType } from './transport';
 
-export function runServer(config: Config) {
+export async function runServer(config: Config, type: TransportType = 'http') {
+  if (type === 'stdio') {
+    return runStdioServer(config);
+  }
+
+  return runHttpServer(config);
+}
+
+async function runStdioServer(config: Config) {
+  const requestAuth = getEnvironmentAuth();
+  if (!requestAuth) {
+    throw new Error('SOLACE_CLOUD_TOKEN is required when using the stdio transport.');
+  }
+
+  EpSdkClient.initialize({
+    globalEpOpenAPI: EpOpenApi,
+    globalEpRtOpenAPI: EpRtOpenApi,
+    token: requestAuth.token,
+  });
+
+  const server = new McpServer({ name: config.service, version: config.version });
+  registerAllTools(server);
+  await runWithRequestAuthContext(requestAuth, async () => {
+    await server.connect(createTransport('stdio'));
+  });
+}
+
+function runHttpServer(config: Config) {
   const app = express();
   app.use(cors());
   app.use(express.json());
@@ -58,9 +89,7 @@ export function runServer(config: Config) {
       const server = new McpServer({ name: config.service, version: config.version });
       registerAllTools(server);
 
-      const transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: undefined,
-      });
+      const transport = createHttpTransport();
 
       await server.connect(transport);
 
@@ -84,7 +113,7 @@ export function runServer(config: Config) {
       'Log Level': config.logLevel,
       'Node Version': process.version,
       'Server Port': config.port,
-      'Auth Headers': 'Authorization, X-Api-Key',
+      'Auth Sources': 'Authorization, X-Api-Key, SOLACE_CLOUD_TOKEN',
     };
     console.table(options);
 

@@ -1,7 +1,8 @@
-import { command, number, boolean } from '@drizzle-team/brocli';
+import { command, number, boolean, string } from '@drizzle-team/brocli';
 import { config } from '../appConfig';
 import { runServer } from '../runServer';
 import { logger } from '../lib/logger';
+import { transportTypes } from '../transport';
 
 export const RunCommand = command({
   name: 'run',
@@ -13,8 +14,12 @@ export const RunCommand = command({
     allowWrite: boolean('allow-write')
       .desc('Enable write actions (create, update, delete) in the MCP')
       .default(false),
+    type: string('type')
+      .desc('Transport to use for the MCP (stdio or http)')
+      .enum(...transportTypes)
+      .default('http'),
   },
-  handler({ port, allowWrite }) {
+  handler({ port, allowWrite, type }) {
     if (port !== config.port) {
       config.setPort(port);
     }
@@ -29,6 +34,6 @@ export const RunCommand = command({
       logger.warn('Write actions (create, update, delete) are enabled in the MCP.');
     }
 
-    runServer(config);
+    return runServer(config, type);
   },
 });

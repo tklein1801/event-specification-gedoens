@@ -3,7 +3,8 @@ import { extractRequestAuth } from '../lib/requestAuth';
 import { logger } from '../lib/logger';
 
 /**
- * Middleware that enforces request authentication via Authorization or X-Api-Key.
+ * Middleware that enforces request authentication via Authorization, X-Api-Key,
+ * or SOLACE_CLOUD_TOKEN.
  */
 export function apiKeyMiddleware(req: Request, res: Response, next: NextFunction): void {
   const requestAuth = extractRequestAuth(req);
@@ -15,7 +16,8 @@ export function apiKeyMiddleware(req: Request, res: Response, next: NextFunction
       ip: req.ip,
     });
     res.status(401).json({
-      error: 'Unauthorized – provide an Authorization token or X-Api-Key header',
+      error:
+        'Unauthorized – provide an Authorization token, X-Api-Key header, or SOLACE_CLOUD_TOKEN',
     });
     return;
   }

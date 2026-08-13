@@ -111,6 +111,7 @@ The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint,
 
 - [Migration command reference](docs/migrate-command.md)
 - [Structured and unstructured CloudEvents](docs/structured-vs-unstructured.md)
+- [MCP service reference](docs/mcp.md)
 
 ## License
 
