@@ -117,7 +117,8 @@ export function registerApplicationTools(server: McpServer): void {
     server.registerTool(
       'create_application_consumer',
       {
-        description: '',
+        description:
+          'Create a consumer for an application version, optionally with event subscriptions',
         inputSchema: {
           applicationVersionId: ZApplicationVersionId,
           name: ZApplicationConsumerName,
