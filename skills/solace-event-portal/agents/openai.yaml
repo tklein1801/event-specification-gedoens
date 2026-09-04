@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Solace Event Portal'
+  short_description: 'Manage Solace Event Portal via ESG MCP'
+  default_prompt: 'Use $solace-event-portal to inspect or maintain Solace Event Portal application domains, applications (and application versions), events (and event versions), schemas (and schema versions), and structured AsyncAPI specifications via the ESG MCP.'

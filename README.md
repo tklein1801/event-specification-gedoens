@@ -82,6 +82,16 @@ esg migrate to-unstructured asyncapi.json
 
 Migration overwrites the supplied file after a successful transformation and preserves JSON/YAML based on the file extension. Use `--verbose` for debug output, `--silent` to suppress logs, and `esg --help` for the complete command reference.
 
+## Skill installation
+
+The Solace Event Portal skill can be installed with `npx skills`:
+
+```sh
+npx skills add https://github.com/tklein1801/event-specification-gedoens --skill solace-event-portal
+```
+
+The skill is then available in compatible AI development environments.
+
 ## Shared migration core
 
 `@event-specification-gedoens/migration-core` contains every parser, validator, navigator, CloudEvent transformer, and serializer used by the CLI and web app. It has no React, CLI, filesystem, or other Node-specific dependency.
