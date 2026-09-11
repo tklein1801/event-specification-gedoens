@@ -1,0 +1,38 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: node
+    tag: latest
+
+inputs:
+  - name: repo
+
+caches:
+  - path: .npm-cache
+  - path: .turbo
+
+params:
+  GITHUB_TOKEN: ((github.token))
+  NPM_TOKEN: ((npm.token))
+  RELEASE_DRY_RUN: 'false'
+
+run:
+  path: sh
+  args:
+    - -ce
+    - |
+      export NPM_CONFIG_CACHE="$PWD/.npm-cache"
+      export TURBO_CACHE_DIR="$PWD/.turbo"
+      cd repo
+      git config user.name "semantic-release-bot"
+      git config user.email "semantic-release-bot@users.noreply.github.com"
+      git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/tklein1801/event-specification-gedoens.git"
+      git checkout -B main
+      git fetch origin main --tags --force
+      npm ci --include=optional
+      node scripts/release.cjs .releaserc.json
+      node scripts/release.cjs .releaserc.webapp.json
+      node scripts/release.cjs .releaserc.mcp.json

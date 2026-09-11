@@ -1,0 +1,27 @@
+---
+# Instance pipeline template: one pipeline per branch created by the parent
+# pipeline (`ci/parent.yml`). `((branch))` comes from the instance vars.
+resources:
+  - name: repo
+    type: git
+    check_every: 1m
+    source:
+      uri: https://github.com/tklein1801/event-specification-gedoens.git
+      branch: ((branch))
+
+  - name: node
+    type: registry-image
+    source:
+      repository: node
+      tag: latest
+
+jobs:
+  - name: verify
+    public: true
+    plan:
+      - in_parallel:
+          - get: repo
+            trigger: true
+          - get: node
+      - task: verify
+        file: repo/ci/tasks/verify.yml

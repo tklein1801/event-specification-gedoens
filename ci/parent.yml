@@ -1,0 +1,142 @@
+---
+# Setup (Team main, HashiCorp Vault standard path template):
+#   fly -t ci login -c https://ci.tklein.it -n main
+#   fly -t ci set-pipeline -p esg -c ci/parent.yml
+#   fly -t ci unpause-pipeline -p esg
+#
+# Vault secrets (path template /concourse/{{Team}}/{{Pipeline}}/{{Secret}}):
+#   /concourse/main/esg/github.token
+#   /concourse/main/esg/npm.token
+
+resource_types:
+  - name: pull-request
+    type: registry-image
+    source:
+      repository: teliaoss/github-pr-resource
+      tag: latest
+
+resources:
+  - name: branches
+    type: git
+    check_every: 1m
+    source:
+      uri: https://github.com/tklein1801/event-specification-gedoens.git
+      version_type: branches
+      branch_filters:
+        - develop
+        - feat/*
+        - feature/*
+        - refactor/*
+
+  - name: repo
+    type: git
+    check_every: 1m
+    source:
+      uri: https://github.com/tklein1801/event-specification-gedoens.git
+      branch: develop
+
+  - name: repo-main
+    type: git
+    check_every: 1m
+    source:
+      uri: https://github.com/tklein1801/event-specification-gedoens.git
+      branch: main
+      fetch_tags: true
+      depth: 0
+
+  - name: pr-develop
+    type: pull-request
+    check_every: 1m
+    source:
+      repository: tklein1801/event-specification-gedoens
+      access_token: ((github.token))
+      base_branch: develop
+
+  - name: pr-main
+    type: pull-request
+    check_every: 1m
+    source:
+      repository: tklein1801/event-specification-gedoens
+      access_token: ((github.token))
+      base_branch: main
+
+jobs:
+  - name: set-branch-pipelines
+    public: true
+    plan:
+      - in_parallel:
+          - get: branches
+            trigger: true
+          - get: repo
+      - load_var: branches
+        file: branches/branches.json
+      - across:
+          - var: branch
+            values: ((.:branches))
+        do:
+          - set_pipeline: esg-branch
+            file: repo/ci/branch.yml
+            instance_vars:
+              branch: ((.:branch))
+
+  - name: pr-develop
+    public: true
+    plan:
+      - get: pr-develop
+        trigger: true
+        version: every
+      - put: pr-develop
+        params:
+          path: pr-develop
+          status: pending
+      - task: verify
+        file: pr-develop/ci/tasks/verify.yml
+        input_mapping:
+          repo: pr-develop
+      - put: pr-develop
+        params:
+          path: pr-develop
+          status: success
+    on_failure:
+      put: pr-develop
+      params:
+        path: pr-develop
+        status: failure
+
+  - name: pr-main
+    public: true
+    plan:
+      - get: pr-main
+        trigger: true
+        version: every
+      - put: pr-main
+        params:
+          path: pr-main
+          status: pending
+      - task: verify
+        file: pr-main/ci/tasks/verify.yml
+        input_mapping:
+          repo: pr-main
+      - put: pr-main
+        params:
+          path: pr-main
+          status: success
+    on_failure:
+      put: pr-main
+      params:
+        path: pr-main
+        status: failure
+
+  - name: release
+    public: true
+    plan:
+      - get: repo-main
+        trigger: true
+      - task: verify
+        file: repo-main/ci/tasks/verify.yml
+        input_mapping:
+          repo: repo-main
+      - task: release
+        file: repo-main/ci/tasks/release.yml
+        input_mapping:
+          repo: repo-main
