@@ -42,7 +42,6 @@ resources:
       uri: https://github.com/tklein1801/event-specification-gedoens.git
       branch: main
       fetch_tags: true
-      depth: 0
 
   - name: pr-develop
     type: pull-request
