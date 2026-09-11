@@ -45,6 +45,16 @@ export class AsyncApiDocumentNavigator {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 
+  static uniqueName(base: string, isTaken: (name: string) => boolean): string {
+    let name = base;
+    let suffix = 2;
+    while (isTaken(name)) {
+      name = `${base}_${suffix}`;
+      suffix += 1;
+    }
+    return name;
+  }
+
   static omit(value: JsonObject, keys: readonly string[]): JsonObject {
     return Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
   }

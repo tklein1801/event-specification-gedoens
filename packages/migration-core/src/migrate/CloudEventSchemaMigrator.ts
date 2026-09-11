@@ -204,12 +204,11 @@ export class CloudEventSchemaMigrator {
 
   private claimNestedSchemaName(parentName: string, propertyName: string): string {
     const base = `${parentName}_${propertyName}`.replaceAll('/', '_');
-    let name = base;
-    let suffix = 2;
-    while (this.claimedSchemaNames.has(name) || Object.hasOwn(this.schemas, name)) {
-      name = `${base}_${suffix}`;
-      suffix += 1;
-    }
+    const name = AsyncApiDocumentNavigator.uniqueName(
+      base,
+      (candidate) =>
+        this.claimedSchemaNames.has(candidate) || Object.hasOwn(this.schemas, candidate),
+    );
     this.claimedSchemaNames.add(name);
     return name;
   }
@@ -283,10 +282,7 @@ export class CloudEventSchemaMigrator {
   }
 
   private availableComponentName(base: string, components: Record<string, unknown>): string {
-    if (!Object.hasOwn(components, base)) return base;
-    let suffix = 2;
-    while (Object.hasOwn(components, `${base}_${suffix}`)) suffix += 1;
-    return `${base}_${suffix}`;
+    return AsyncApiDocumentNavigator.uniqueName(base, (name) => Object.hasOwn(components, name));
   }
 
   private resolveSchemaReferences(value: unknown, resolving = new Set<string>()): unknown {
@@ -313,15 +309,19 @@ export class CloudEventSchemaMigrator {
         );
       }
 
-      const nextResolving = new Set(resolving).add(value.$ref);
-      const siblings = AsyncApiDocumentNavigator.omit(value, ['$ref']);
-      const resolvedValue = this.resolveSchemaReferences(resolved, nextResolving);
-      return AsyncApiDocumentNavigator.isObject(resolvedValue)
-        ? {
-            ...resolvedValue,
-            ...(this.resolveSchemaReferences(siblings, nextResolving) as JsonObject),
-          }
-        : resolvedValue;
+      resolving.add(value.$ref);
+      try {
+        const siblings = AsyncApiDocumentNavigator.omit(value, ['$ref']);
+        const resolvedValue = this.resolveSchemaReferences(resolved, resolving);
+        return AsyncApiDocumentNavigator.isObject(resolvedValue)
+          ? {
+              ...resolvedValue,
+              ...(this.resolveSchemaReferences(siblings, resolving) as JsonObject),
+            }
+          : resolvedValue;
+      } finally {
+        resolving.delete(value.$ref);
+      }
     }
 
     return Object.fromEntries(
@@ -342,12 +342,11 @@ export class CloudEventSchemaMigrator {
     }
 
     const base = (preferredName?.trim() || referencedName || 'payload').replaceAll('/', '_');
-    let name = base;
-    let suffix = 2;
-    while (this.claimedSchemaNames.has(name) || Object.hasOwn(this.schemas, name)) {
-      name = `${base}_${suffix}`;
-      suffix += 1;
-    }
+    const name = AsyncApiDocumentNavigator.uniqueName(
+      base,
+      (candidate) =>
+        this.claimedSchemaNames.has(candidate) || Object.hasOwn(this.schemas, candidate),
+    );
     this.claimedSchemaNames.add(name);
     return name;
   }

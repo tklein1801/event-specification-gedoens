@@ -1,15 +1,13 @@
+import { AsyncApiDocumentNavigator } from './AsyncApiDocumentNavigator';
+
 export class MigrationIdentifierRegistry {
   private readonly identifiers = new Set<string>();
 
   use(preferred: string | undefined, fallback: string): string {
-    const base = this.normalize(preferred ?? fallback);
-    let identifier = base;
-    let suffix = 2;
-
-    while (this.identifiers.has(identifier)) {
-      identifier = `${base}_${suffix}`;
-      suffix += 1;
-    }
+    const identifier = AsyncApiDocumentNavigator.uniqueName(
+      this.normalize(preferred ?? fallback),
+      (name) => this.identifiers.has(name),
+    );
 
     this.identifiers.add(identifier);
     return identifier;

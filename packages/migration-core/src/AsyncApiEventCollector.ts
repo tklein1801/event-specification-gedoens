@@ -1,4 +1,5 @@
 import type { AsyncApiDocument } from './AsyncApiSpecification';
+import { AsyncApiDocumentNavigator } from './migrate/AsyncApiDocumentNavigator';
 
 export type EventDirection = 'published' | 'consumed';
 
@@ -7,27 +8,30 @@ export interface AsyncApiEvent {
   direction: EventDirection;
 }
 
-type JsonObject = Record<string, unknown>;
-
 export class AsyncApiEventCollector {
-  constructor(private readonly document: AsyncApiDocument) {}
+  private readonly navigator: AsyncApiDocumentNavigator;
+
+  constructor(private readonly document: AsyncApiDocument) {
+    this.navigator = new AsyncApiDocumentNavigator(document);
+  }
 
   collect(): AsyncApiEvent[] {
     const events = this.document.asyncapi.startsWith('2.')
       ? this.collectVersion2Events()
       : this.collectVersion3Events();
 
-    return events.filter(
-      (event, index) =>
-        events.findIndex(
-          (candidate) => candidate.name === event.name && candidate.direction === event.direction,
-        ) === index,
-    );
+    const seen = new Set<string>();
+    return events.filter((event) => {
+      const key = `${event.name}\u0000${event.direction}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   }
 
   private collectVersion2Events(): AsyncApiEvent[] {
     return Object.entries(this.document.channels ?? {}).flatMap(([channelName, value]) => {
-      const channel = this.resolveObject(value);
+      const channel = this.navigator.resolveObject(value);
       if (channel === undefined) return [];
 
       return [
@@ -42,7 +46,7 @@ export class AsyncApiEventCollector {
     direction: EventDirection,
     channelName: string,
   ): AsyncApiEvent[] {
-    const operation = this.resolveObject(value);
+    const operation = this.navigator.resolveObject(value);
     if (operation === undefined) return [];
 
     return this.collectMessageNames(operation.message, channelName).map((name) => ({
@@ -53,7 +57,7 @@ export class AsyncApiEventCollector {
 
   private collectVersion3Events(): AsyncApiEvent[] {
     return Object.values(this.document.operations ?? {}).flatMap((value) => {
-      const operation = this.resolveObject(value);
+      const operation = this.navigator.resolveObject(value);
       if (
         operation === undefined ||
         (operation.action !== 'send' && operation.action !== 'receive')
@@ -71,8 +75,8 @@ export class AsyncApiEventCollector {
   }
 
   private collectChannelMessageNames(value: unknown): string[] {
-    const channel = this.resolveObject(value);
-    if (channel === undefined || !AsyncApiEventCollector.isObject(channel.messages)) return [];
+    const channel = this.navigator.resolveObject(value);
+    if (channel === undefined || !AsyncApiDocumentNavigator.isObject(channel.messages)) return [];
 
     return Object.entries(channel.messages).flatMap(([name, message]) =>
       this.collectMessageNames(message, name),
@@ -88,7 +92,7 @@ export class AsyncApiEventCollector {
       return value.flatMap((message) => this.collectMessageNames(message, fallback, visited));
     }
 
-    if (!AsyncApiEventCollector.isObject(value)) {
+    if (!AsyncApiDocumentNavigator.isObject(value)) {
       return fallback === undefined ? [] : [fallback];
     }
 
@@ -96,51 +100,17 @@ export class AsyncApiEventCollector {
       if (visited.has(value.$ref)) return fallback === undefined ? [] : [fallback];
 
       const nextVisited = new Set(visited).add(value.$ref);
-      const referenced = this.resolveReference(value.$ref);
-      const referenceName = AsyncApiEventCollector.referenceName(value.$ref);
+      const referenced = this.navigator.resolveReference(value.$ref);
+      const referenceName = AsyncApiDocumentNavigator.referenceName(value.$ref);
       return this.collectMessageNames(referenced, referenceName ?? fallback, nextVisited);
     }
 
     if (typeof value.name === 'string') return [value.name];
 
-    if (AsyncApiEventCollector.isObject(value.oneOf) || Array.isArray(value.oneOf)) {
+    if (AsyncApiDocumentNavigator.isObject(value.oneOf) || Array.isArray(value.oneOf)) {
       return this.collectMessageNames(value.oneOf, fallback, visited);
     }
 
     return fallback === undefined ? [] : [fallback];
-  }
-
-  private resolveObject(value: unknown): JsonObject | undefined {
-    if (!AsyncApiEventCollector.isObject(value)) return undefined;
-
-    if (typeof value.$ref === 'string') {
-      const referenced = this.resolveReference(value.$ref);
-      return AsyncApiEventCollector.isObject(referenced) ? referenced : undefined;
-    }
-
-    return value;
-  }
-
-  private resolveReference(reference: string): unknown {
-    if (!reference.startsWith('#/')) return undefined;
-
-    return reference
-      .slice(2)
-      .split('/')
-      .map((segment) => decodeURIComponent(segment).replaceAll('~1', '/').replaceAll('~0', '~'))
-      .reduce<unknown>((current, segment) => {
-        return AsyncApiEventCollector.isObject(current) ? current[segment] : undefined;
-      }, this.document);
-  }
-
-  private static referenceName(reference: string): string | undefined {
-    const segment = reference.split('/').at(-1);
-    return segment === undefined
-      ? undefined
-      : decodeURIComponent(segment).replaceAll('~1', '/').replaceAll('~0', '~');
-  }
-
-  private static isObject(value: unknown): value is JsonObject {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
   }
 }

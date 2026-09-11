@@ -50,7 +50,7 @@ export class ToStructuredAsyncApiMigration implements AsyncApiMigration {
     ]);
     const migratedComponentFields = this.migrateComponents(components, schemaMigrator);
     const referencedSchemaNames = this.collectSchemaReferenceNames({
-      ...structuredClone(documentFields),
+      ...documentFields,
       ...(Object.keys(channels).length > 0 ? { channels } : {}),
       ...(Object.keys(operations).length > 0 ? { operations } : {}),
       ...(migratedComponentFields === undefined
