@@ -163,3 +163,45 @@
 ### `get_schema_versions`
 
 - `event_designer:access`
+
+## Enumerations
+
+### `create_enum`
+
+- `ep_enum:create:*`
+
+### `create_enum_version`
+
+- `ep_enum:update:*`
+
+### `update_enum`
+
+- `ep_enum:update:*`
+
+### `update_enum_version`
+
+- `ep_enum:update:*`
+
+### `delete_enum`
+
+- `ep_enum:delete:*`
+
+### `delete_enum_version`
+
+- `ep_enum:update:*`
+
+### `get_enum`
+
+- `ep_enum:get:*`
+
+### `get_enums`
+
+- `event_designer:access`
+
+### `get_enum_version`
+
+- `ep_enum:get:*`
+
+### `get_enum_versions`
+
+- `event_designer:access`

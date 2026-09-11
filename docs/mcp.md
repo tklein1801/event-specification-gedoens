@@ -1,6 +1,6 @@
 # @tklein1801/esg-mcp
 
-MCP (Model Context Protocol) service for Event Specification Management (ESG). Exposes CRUD operations for Applications, Application Domains, Events, and Schemas plus local AsyncAPI migrations as AI-callable tools over a Streamable-HTTP endpoint served by Express.
+MCP (Model Context Protocol) service for Event Specification Management (ESG). Exposes CRUD operations for Applications, Application Domains, Events, Schemas, and Enumerations plus local AsyncAPI migrations as AI-callable tools over a Streamable-HTTP endpoint served by Express.
 
 ## Quick Start
 
@@ -224,6 +224,21 @@ The migration runs locally in the MCP service; no CLI process is started and no 
 | `update_schema_version` | `ALLOW_UPDATE` | Update an existing schema version       |
 | `delete_schema`         | `ALLOW_DELETE` | Delete a schema by its ID               |
 | `delete_schema_version` | `ALLOW_DELETE` | Delete a schema version by its ID       |
+
+### Enumerations
+
+| Tool                  | Availability   | Description                              |
+| :-------------------- | :------------- | :--------------------------------------- |
+| `get_enum`            | Always         | Get a specific enumeration by its ID     |
+| `get_enums`           | Always         | List enumerations with optional filters  |
+| `get_enum_version`    | Always         | Get a specific enumeration version by ID |
+| `get_enum_versions`   | Always         | List enumeration versions with filters   |
+| `create_enum`         | `ALLOW_CREATE` | Create a new enumeration                 |
+| `create_enum_version` | `ALLOW_CREATE` | Create a new version of an enumeration   |
+| `update_enum`         | `ALLOW_UPDATE` | Update an existing enumeration           |
+| `update_enum_version` | `ALLOW_UPDATE` | Update an existing enumeration version   |
+| `delete_enum`         | `ALLOW_DELETE` | Delete an enumeration by its ID          |
+| `delete_enum_version` | `ALLOW_DELETE` | Delete an enumeration version by its ID  |
 
 ## Development
 

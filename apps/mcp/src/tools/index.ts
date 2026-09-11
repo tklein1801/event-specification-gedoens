@@ -3,6 +3,7 @@ import { registerApplicationTools } from './application.tools';
 import { registerApplicationDomainTools } from './domain.tools';
 import { registerEventTools } from './event.tools';
 import { registerSchemaTools } from './schema.tools';
+import { registerEnumTools } from './enum.tools';
 import { registerMigrationTools } from './migration.tools';
 import { registerSearchTools } from './search.tools';
 
@@ -12,6 +13,7 @@ export function registerAllTools(server: McpServer): void {
   registerApplicationDomainTools(server);
   registerEventTools(server);
   registerSchemaTools(server);
+  registerEnumTools(server);
   registerMigrationTools(server);
 }
 

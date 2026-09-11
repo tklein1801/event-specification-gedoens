@@ -14,4 +14,4 @@ export const ZSchemaType = z
   .describe('The type of the schema.');
 export const ZShared = z
   .boolean()
-  .describe('Indicates whether the schema is shared across application domains.');
+  .describe('Indicates whether the entity is shared across application domains.');

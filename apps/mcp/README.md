@@ -1,6 +1,6 @@
 # @tklein1801/esg-mcp
 
-MCP (Model Context Protocol) service for Event Specification Management (ESG). It exposes CRUD operations for Applications, Application Domains, Events, and Schemas plus local AsyncAPI migrations as AI-callable tools over a Streamable-HTTP endpoint served by Express.
+MCP (Model Context Protocol) service for Event Specification Management (ESG). It exposes CRUD operations for Applications, Application Domains, Events, Schemas, and Enumerations plus local AsyncAPI migrations as AI-callable tools over a Streamable-HTTP endpoint served by Express.
 
 ## Installation
 
@@ -55,7 +55,7 @@ For Claude Code, add both transports to a project-level `.mcp.json`:
 
 ## Available Tools
 
-The package provides read-only tools for applications, application domains, events, and schemas. Create, update, and delete tools are disabled by default and can be enabled with `ALLOW_CREATE`, `ALLOW_UPDATE`, and `ALLOW_DELETE`.
+The package provides read-only tools for applications, application domains, events, schemas, and enumerations. Create, update, and delete tools are disabled by default and can be enabled with `ALLOW_CREATE`, `ALLOW_UPDATE`, and `ALLOW_DELETE`.
 
 The always-available `migrate_asyncapi` tool converts YAML or JSON AsyncAPI specifications between structured and unstructured CloudEvents:
 
