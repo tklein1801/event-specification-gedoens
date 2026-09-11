@@ -10,7 +10,8 @@ const formats = {
 export const logger = createLogger({
   level: config.logLevel,
   format: formats.pretty,
-  transports: [new transports.Console()],
+  // Everything goes to stderr so stdout stays reserved for the stdio JSON-RPC stream.
+  transports: [new transports.Console({ stderrLevels: ['error', 'warn', 'info', 'debug'] })],
 });
 
 export const eventPortalLogger = new EpSdkConsoleLogger(
