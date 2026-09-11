@@ -14,6 +14,7 @@ import { apiKeyMiddleware, handleError, logRequest, rateLimitMiddleware } from '
 import { registerAllTools } from './tools';
 import { logger } from './lib/logger';
 import { getToolCall, runWithToolLoggingContext } from './lib/toolLogging';
+import { runExclusive } from './lib/requestMutex';
 import { createHttpTransport, createTransport, type TransportType } from './transport';
 
 export async function runServer(config: Config, type: TransportType = 'http') {
@@ -70,36 +71,40 @@ function runHttpServer(config: Config) {
       return;
     }
 
-    logger.debug('Initializing EpSdkClient', {
-      actor: requestAuth.actor,
-      authMethod: requestAuth.authMethod,
-    });
+    // The EP SDK stores the token in a process-global config, so SDK access is
+    // serialized to keep tokens isolated between concurrent requests.
+    await runExclusive(async () => {
+      logger.debug('Initializing EpSdkClient', {
+        actor: requestAuth.actor,
+        authMethod: requestAuth.authMethod,
+      });
 
-    EpSdkClient.initialize({
-      globalEpOpenAPI: EpOpenApi,
-      globalEpRtOpenAPI: EpRtOpenApi,
-      token: requestAuth.token,
-    });
+      EpSdkClient.initialize({
+        globalEpOpenAPI: EpOpenApi,
+        globalEpRtOpenAPI: EpRtOpenApi,
+        token: requestAuth.token,
+      });
 
-    logger.debug('EpSdkClient initialized', {
-      actor: requestAuth.actor,
-    });
+      logger.debug('EpSdkClient initialized', {
+        actor: requestAuth.actor,
+      });
 
-    await runWithRequestAuthContext(requestAuth, async () => {
-      const server = new McpServer({ name: config.service, version: config.version });
-      registerAllTools(server);
+      await runWithRequestAuthContext(requestAuth, async () => {
+        const server = new McpServer({ name: config.service, version: config.version });
+        registerAllTools(server);
 
-      const transport = createHttpTransport();
+        const transport = createHttpTransport();
 
-      await server.connect(transport);
+        await server.connect(transport);
 
-      try {
-        await runWithToolLoggingContext(getToolCall(req.body), () =>
-          transport.handleRequest(req, res, req.body),
-        );
-      } finally {
-        await server.close();
-      }
+        try {
+          await runWithToolLoggingContext(getToolCall(req.body), () =>
+            transport.handleRequest(req, res, req.body),
+          );
+        } finally {
+          await server.close();
+        }
+      });
     });
   });
 
