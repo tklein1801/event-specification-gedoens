@@ -24,5 +24,10 @@ import 'dotenv/config';
 export function getPort(fallbackPort = 3000): number {
   const envPort = process.env.PORT;
   const parsedPort = parseInt(envPort || '', 10);
-  return !Number.isNaN(parsedPort) ? parsedPort : fallbackPort;
+
+  if (!Number.isInteger(parsedPort) || parsedPort < 0 || parsedPort > 65535) {
+    return fallbackPort;
+  }
+
+  return parsedPort;
 }

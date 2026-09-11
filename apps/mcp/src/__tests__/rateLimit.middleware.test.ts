@@ -43,4 +43,21 @@ describe('rateLimitMiddleware', () => {
     expect(res.status).toHaveBeenCalledWith(429);
     expect(res.json).toHaveBeenCalledWith({ error: 'Too many requests. Please try again later.' });
   });
+
+  it('allows requests again once the window has passed', () => {
+    const res = makeRes();
+    const next = vi.fn() as NextFunction;
+
+    for (let i = 0; i < 121; i++) {
+      rateLimitMiddleware(makeReq('10.2.0.1'), res, next);
+    }
+    expect(res.status).toHaveBeenCalledWith(429);
+
+    vi.advanceTimersByTime(61_000);
+
+    const nextAfterWindow = vi.fn() as NextFunction;
+    rateLimitMiddleware(makeReq('10.2.0.1'), makeRes(), nextAfterWindow);
+
+    expect(nextAfterWindow).toHaveBeenCalledOnce();
+  });
 });

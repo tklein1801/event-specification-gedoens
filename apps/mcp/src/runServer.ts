@@ -13,9 +13,14 @@ import {
 import { apiKeyMiddleware, handleError, logRequest, rateLimitMiddleware } from './middleware';
 import { registerAllTools } from './tools';
 import { logger } from './lib/logger';
-import { getToolCall, runWithToolLoggingContext } from './lib/toolLogging';
+import { getErrorDetails, getToolCall, runWithToolLoggingContext } from './lib/toolLogging';
 import { runExclusive } from './lib/requestMutex';
+import { registerShutdownHandlers } from './lib/shutdown';
 import { createHttpTransport, createTransport, type TransportType } from './transport';
+
+const REQUEST_TIMEOUT_MS = 30_000;
+const HEADERS_TIMEOUT_MS = 15_000;
+const KEEP_ALIVE_TIMEOUT_MS = 5_000;
 
 export async function runServer(config: Config, type: TransportType = 'http') {
   if (type === 'stdio') {
@@ -46,8 +51,13 @@ async function runStdioServer(config: Config) {
 
 function runHttpServer(config: Config) {
   const app = express();
-  app.use(cors());
-  app.use(express.json());
+  app.set('trust proxy', config.trustProxy);
+  if (config.corsOrigin) {
+    app.use(cors({ origin: config.corsOrigin }));
+  } else {
+    app.use(cors());
+  }
+  app.use(express.json({ limit: config.bodyLimit }));
   app.use(logRequest);
   if (config.runtime === 'production') {
     app.use(rateLimitMiddleware);
@@ -57,9 +67,12 @@ function runHttpServer(config: Config) {
       'Rate limiting is disabled in non-production environments. Make sure to enable it in production to prevent abuse.',
     );
 
-  app.all(/^\/(api\/)?(status|health)\/?$/, async (_req, res) => {
+  app.all(/^\/(api\/)?(status|health)\/?$/, (_req, res) => {
     res.status(200).json({
       status: 'ok',
+      service: config.service,
+      version: config.version,
+      uptimeSeconds: Math.round(process.uptime()),
     });
   });
 
@@ -124,6 +137,17 @@ function runHttpServer(config: Config) {
 
     logger.info(`${config.service} is running on port ${config.port}`);
   });
+
+  server.requestTimeout = REQUEST_TIMEOUT_MS;
+  server.headersTimeout = HEADERS_TIMEOUT_MS;
+  server.keepAliveTimeout = KEEP_ALIVE_TIMEOUT_MS;
+
+  server.on('error', (error) => {
+    logger.error('HTTP server error', { error: getErrorDetails(error) });
+    process.exit(1);
+  });
+
+  registerShutdownHandlers(server);
 
   return { app, server };
 }

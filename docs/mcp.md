@@ -27,15 +27,20 @@ The stdio transport uses only `SOLACE_CLOUD_TOKEN` for authentication. HTTP keep
 
 ## Environment Variables
 
-| Variable             | Required | Description                                           | Default       |
-| :------------------- | :------: | :---------------------------------------------------- | :------------ |
-| `PORT`               |    –     | HTTP port the service listens on                      | `3070`        |
-| `NODE_ENV`           |    –     | Runtime environment (`production` enables rate-limit) | `development` |
-| `LOG_LEVEL`          |    –     | Winston log level (`error`, `warn`, `info`, `debug`)  | `info`        |
-| `SOLACE_CLOUD_TOKEN` |    –     | Fallback token for authenticating MCP requests        | –             |
-| `ALLOW_CREATE`       |    –     | Enable create tools (`true`/`false`)                  | `false`       |
-| `ALLOW_UPDATE`       |    –     | Enable update tools (`true`/`false`)                  | `false`       |
-| `ALLOW_DELETE`       |    –     | Enable delete tools (`true`/`false`)                  | `false`       |
+| Variable               | Required | Description                                                  | Default       |
+| :--------------------- | :------: | :----------------------------------------------------------- | :------------ |
+| `PORT`                 |    –     | HTTP port the service listens on                             | `3070`        |
+| `NODE_ENV`             |    –     | Runtime environment (`production` enables rate-limit)        | `development` |
+| `LOG_LEVEL`            |    –     | Winston log level (`error`, `warn`, `info`, `debug`)         | `info`        |
+| `SOLACE_CLOUD_TOKEN`   |    –     | Fallback token for authenticating MCP requests               | –             |
+| `ALLOW_CREATE`         |    –     | Enable create tools (`true`/`false`)                         | `false`       |
+| `ALLOW_UPDATE`         |    –     | Enable update tools (`true`/`false`)                         | `false`       |
+| `ALLOW_DELETE`         |    –     | Enable delete tools (`true`/`false`)                         | `false`       |
+| `TRUST_PROXY`          |    –     | Express `trust proxy` setting (e.g. `true`, `1`, `loopback`) | `false`       |
+| `CORS_ORIGIN`          |    –     | Comma-separated allowed origins; unset or `*` allows any     | –             |
+| `BODY_LIMIT`           |    –     | Maximum JSON request body size                               | `5mb`         |
+| `RATE_LIMIT_WINDOW_MS` |    –     | Rate-limit window in milliseconds                            | `60000`       |
+| `RATE_LIMIT_MAX`       |    –     | Maximum requests per window and client                       | `120`         |
 
 ### Tool Toggles
 
@@ -68,7 +73,7 @@ GET /status # or /api/status
 GET /health # or /api/health
 ```
 
-Returns `{ "status": "ok" }` with HTTP 200.
+Returns `{ "status": "ok", "service": "...", "version": "...", "uptimeSeconds": 42 }` with HTTP 200.
 
 ## MCP Endpoint
 
@@ -80,7 +85,14 @@ GET    /mcp  – SSE stream for server-initiated messages
 DELETE /mcp  – close session
 ```
 
-The endpoint is **stateless** — each request creates a fresh MCP server and transport instance scoped to the authenticated context.
+The endpoint is **stateless** — each request creates a fresh MCP server and transport instance scoped to the authenticated context. Because the Solace EP SDK keeps the auth token in a process-global config, concurrent `/mcp` requests are serialized to prevent tokens from leaking between requests.
+
+In addition:
+
+- Requests normally complete within 30 seconds (server request timeout).
+- JSON bodies are limited to `BODY_LIMIT` (default `5mb`) and malformed JSON returns HTTP 400.
+- Internal error messages are only returned in non-production environments.
+- The service shuts down gracefully on `SIGTERM`/`SIGINT` (10 second grace period).
 
 ### Claude Code Configuration
 
@@ -131,7 +143,7 @@ For the HTTP entry, Claude Code sends the token as an `Authorization` header. Fo
 
 ## Rate Limiting
 
-Rate limiting is **only active in production** (`NODE_ENV=production`). By default it allows 120 requests per minute per IP address on the `/mcp` endpoint.
+Rate limiting is **only active in production** (`NODE_ENV=production`). It allows `RATE_LIMIT_MAX` requests per `RATE_LIMIT_WINDOW_MS` per client (default: 120 requests per minute). Expired counters are evicted automatically. When running behind a reverse proxy, set `TRUST_PROXY` so the client IP is resolved correctly.
 
 ## Available Tools
 
