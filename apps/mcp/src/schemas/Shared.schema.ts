@@ -5,3 +5,8 @@ export const ZBrokerType = z.enum(Application.brokerType).describe('The broker t
 
 export const ZPageNumber = z.number().describe('The page number to get');
 export const ZPageSize = z.number().describe('The number of items to get per page');
+
+export const ZLifecycleState = z
+  .enum(['Draft', 'Released', 'Deprecated', 'Retired'])
+  .describe('The target lifecycle state of the version.');
+export type LifecycleState = z.infer<typeof ZLifecycleState>;

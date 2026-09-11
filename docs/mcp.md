@@ -137,6 +137,8 @@ Rate limiting is **only active in production** (`NODE_ENV=production`). By defau
 
 All tools are grouped by domain. Read-only tools (`get_*`, list operations) are always available. Mutation tools (`create_*`, `update_*`, `delete_*`) must be explicitly enabled via environment variables.
 
+Version state tools (`update_*_version_state`) accept one of the lifecycle states `Draft`, `Released`, `Deprecated`, or `Retired` and resolve the corresponding state ID automatically. Invalid state transitions are rejected by Event Portal.
+
 ### Migration
 
 | Tool               | Availability | Description                                                  |
@@ -172,18 +174,19 @@ The migration runs locally in the MCP service; no CLI process is started and no 
 
 ### Applications
 
-| Tool                         | Availability   | Description                                 |
-| :--------------------------- | :------------- | :------------------------------------------ |
-| `get_application`            | Always         | Get a specific application by its ID        |
-| `get_applications`           | Always         | List all applications with optional filters |
-| `get_application_version`    | Always         | Get a specific application version by ID    |
-| `get_applications_versions`  | Always         | List application versions with filters      |
-| `create_application`         | `ALLOW_CREATE` | Create a new application                    |
-| `create_application_version` | `ALLOW_CREATE` | Create a new version of an application      |
-| `update_application`         | `ALLOW_UPDATE` | Update an existing application              |
-| `update_application_version` | `ALLOW_UPDATE` | Update an existing application version      |
-| `delete_application`         | `ALLOW_DELETE` | Delete an application by its ID             |
-| `delete_application_version` | `ALLOW_DELETE` | Delete an application version by its ID     |
+| Tool                               | Availability   | Description                                          |
+| :--------------------------------- | :------------- | :--------------------------------------------------- |
+| `get_application`                  | Always         | Get a specific application by its ID                 |
+| `get_applications`                 | Always         | List all applications with optional filters          |
+| `get_application_version`          | Always         | Get a specific application version by ID             |
+| `get_applications_versions`        | Always         | List application versions with filters               |
+| `create_application`               | `ALLOW_CREATE` | Create a new application                             |
+| `create_application_version`       | `ALLOW_CREATE` | Create a new version of an application               |
+| `update_application`               | `ALLOW_UPDATE` | Update an existing application                       |
+| `update_application_version`       | `ALLOW_UPDATE` | Update an existing application version               |
+| `update_application_version_state` | `ALLOW_UPDATE` | Update the lifecycle state of an application version |
+| `delete_application`               | `ALLOW_DELETE` | Delete an application by its ID                      |
+| `delete_application_version`       | `ALLOW_DELETE` | Delete an application version by its ID              |
 
 ### Application Domains
 
@@ -197,48 +200,51 @@ The migration runs locally in the MCP service; no CLI process is started and no 
 
 ### Events
 
-| Tool                   | Availability   | Description                            |
-| :--------------------- | :------------- | :------------------------------------- |
-| `get_event`            | Always         | Get a specific event by its ID         |
-| `get_events`           | Always         | List all events with optional filters  |
-| `get_event_version`    | Always         | Get a specific event version by its ID |
-| `get_event_versions`   | Always         | List event versions with filters       |
-| `create_event`         | `ALLOW_CREATE` | Create a new event                     |
-| `create_event_version` | `ALLOW_CREATE` | Create a new version of an event       |
-| `update_event`         | `ALLOW_UPDATE` | Update an existing event               |
-| `update_event_version` | `ALLOW_UPDATE` | Update an existing event version       |
-| `delete_event`         | `ALLOW_DELETE` | Delete an event by its ID              |
-| `delete_event_version` | `ALLOW_DELETE` | Delete an event version by its ID      |
+| Tool                         | Availability   | Description                                    |
+| :--------------------------- | :------------- | :--------------------------------------------- |
+| `get_event`                  | Always         | Get a specific event by its ID                 |
+| `get_events`                 | Always         | List all events with optional filters          |
+| `get_event_version`          | Always         | Get a specific event version by its ID         |
+| `get_event_versions`         | Always         | List event versions with filters               |
+| `create_event`               | `ALLOW_CREATE` | Create a new event                             |
+| `create_event_version`       | `ALLOW_CREATE` | Create a new version of an event               |
+| `update_event`               | `ALLOW_UPDATE` | Update an existing event                       |
+| `update_event_version`       | `ALLOW_UPDATE` | Update an existing event version               |
+| `update_event_version_state` | `ALLOW_UPDATE` | Update the lifecycle state of an event version |
+| `delete_event`               | `ALLOW_DELETE` | Delete an event by its ID                      |
+| `delete_event_version`       | `ALLOW_DELETE` | Delete an event version by its ID              |
 
 ### Schemas
 
-| Tool                    | Availability   | Description                             |
-| :---------------------- | :------------- | :-------------------------------------- |
-| `get_schema`            | Always         | Get a specific schema by its ID         |
-| `get_schemas`           | Always         | List schemas with optional filters      |
-| `get_schema_version`    | Always         | Get a specific schema version by its ID |
-| `get_schema_versions`   | Always         | List versions with filters              |
-| `create_schema`         | `ALLOW_CREATE` | Create a new schema                     |
-| `create_schema_version` | `ALLOW_CREATE` | Create a new version of a schema        |
-| `update_schema`         | `ALLOW_UPDATE` | Update an existing schema               |
-| `update_schema_version` | `ALLOW_UPDATE` | Update an existing schema version       |
-| `delete_schema`         | `ALLOW_DELETE` | Delete a schema by its ID               |
-| `delete_schema_version` | `ALLOW_DELETE` | Delete a schema version by its ID       |
+| Tool                          | Availability   | Description                                    |
+| :---------------------------- | :------------- | :--------------------------------------------- |
+| `get_schema`                  | Always         | Get a specific schema by its ID                |
+| `get_schemas`                 | Always         | List schemas with optional filters             |
+| `get_schema_version`          | Always         | Get a specific schema version by its ID        |
+| `get_schema_versions`         | Always         | List versions with filters                     |
+| `create_schema`               | `ALLOW_CREATE` | Create a new schema                            |
+| `create_schema_version`       | `ALLOW_CREATE` | Create a new version of a schema               |
+| `update_schema`               | `ALLOW_UPDATE` | Update an existing schema                      |
+| `update_schema_version`       | `ALLOW_UPDATE` | Update an existing schema version              |
+| `update_schema_version_state` | `ALLOW_UPDATE` | Update the lifecycle state of a schema version |
+| `delete_schema`               | `ALLOW_DELETE` | Delete a schema by its ID                      |
+| `delete_schema_version`       | `ALLOW_DELETE` | Delete a schema version by its ID              |
 
 ### Enumerations
 
-| Tool                  | Availability   | Description                              |
-| :-------------------- | :------------- | :--------------------------------------- |
-| `get_enum`            | Always         | Get a specific enumeration by its ID     |
-| `get_enums`           | Always         | List enumerations with optional filters  |
-| `get_enum_version`    | Always         | Get a specific enumeration version by ID |
-| `get_enum_versions`   | Always         | List enumeration versions with filters   |
-| `create_enum`         | `ALLOW_CREATE` | Create a new enumeration                 |
-| `create_enum_version` | `ALLOW_CREATE` | Create a new version of an enumeration   |
-| `update_enum`         | `ALLOW_UPDATE` | Update an existing enumeration           |
-| `update_enum_version` | `ALLOW_UPDATE` | Update an existing enumeration version   |
-| `delete_enum`         | `ALLOW_DELETE` | Delete an enumeration by its ID          |
-| `delete_enum_version` | `ALLOW_DELETE` | Delete an enumeration version by its ID  |
+| Tool                        | Availability   | Description                                          |
+| :-------------------------- | :------------- | :--------------------------------------------------- |
+| `get_enum`                  | Always         | Get a specific enumeration by its ID                 |
+| `get_enums`                 | Always         | List enumerations with optional filters              |
+| `get_enum_version`          | Always         | Get a specific enumeration version by ID             |
+| `get_enum_versions`         | Always         | List enumeration versions with filters               |
+| `create_enum`               | `ALLOW_CREATE` | Create a new enumeration                             |
+| `create_enum_version`       | `ALLOW_CREATE` | Create a new version of an enumeration               |
+| `update_enum`               | `ALLOW_UPDATE` | Update an existing enumeration                       |
+| `update_enum_version`       | `ALLOW_UPDATE` | Update an existing enumeration version               |
+| `update_enum_version_state` | `ALLOW_UPDATE` | Update the lifecycle state of an enumeration version |
+| `delete_enum`               | `ALLOW_DELETE` | Delete an enumeration by its ID                      |
+| `delete_enum_version`       | `ALLOW_DELETE` | Delete an enumeration version by its ID              |
 
 ## Development
 

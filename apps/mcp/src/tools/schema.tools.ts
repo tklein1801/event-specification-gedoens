@@ -15,7 +15,8 @@ import {
   ZSchemaVersionId,
   ZShared,
 } from '../schemas/Schema.schema';
-import { ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
+import { ZPageNumber, ZPageSize, ZLifecycleState } from '../schemas/Shared.schema';
+import { resolveStateId } from '../lib/state.service';
 
 export function registerSchemaTools(server: McpServer): void {
   if (config.tools.allow_create) {
@@ -133,6 +134,28 @@ export function registerSchemaTools(server: McpServer): void {
               description,
               displayName,
             },
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'update_schema_version_state',
+      {
+        description: 'Update the lifecycle state of a schema version',
+        inputSchema: {
+          schemaVersionId: ZSchemaVersionId,
+          state: ZLifecycleState,
+        },
+      },
+      async ({ schemaVersionId, state }) => {
+        try {
+          const result = await SchemasService.updateSchemaVersionState({
+            id: schemaVersionId,
+            requestBody: { stateId: await resolveStateId(state) },
           });
           return ok(result);
         } catch (error) {

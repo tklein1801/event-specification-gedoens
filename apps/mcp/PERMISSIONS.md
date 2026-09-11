@@ -56,6 +56,10 @@
 
 - `application:update:*`
 
+### `update_application_version_state`
+
+- `application:update_state:*`
+
 ### `delete_application`
 
 - `application:delete:*`
@@ -97,6 +101,10 @@
 ### `update_event_version`
 
 - `event:update:*`
+
+### `update_event_version_state`
+
+- `event:update_state:*`
 
 ### `delete_event`
 
@@ -140,6 +148,10 @@
 
 - `schema:update:*`
 
+### `update_schema_version_state`
+
+- `schema:update_state:*`
+
 ### `delete_schema`
 
 - `schema:delete:*`
@@ -181,6 +193,10 @@
 ### `update_enum_version`
 
 - `ep_enum:update:*`
+
+### `update_enum_version_state`
+
+- `ep_enum:update_state:*`
 
 ### `delete_enum`
 

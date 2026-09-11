@@ -4,7 +4,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { err, ok } from './helpers';
 import { z } from 'zod';
 import { ZApplicationDomainId } from '../schemas/ApplicationDomain.schema';
-import { ZBrokerType, ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
+import { ZBrokerType, ZLifecycleState, ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
 import {
   ZApplicationBrokerType,
   ZApplicationConsumerName,
@@ -20,6 +20,7 @@ import {
   ZSubscription,
 } from '../schemas/Application.schema';
 import { ZEventVersion, ZEventVersionId } from '../schemas/Event.schema';
+import { resolveStateId } from '../lib/state.service';
 import { logger } from '../lib/logger';
 
 export function registerApplicationTools(server: McpServer): void {
@@ -222,6 +223,28 @@ export function registerApplicationTools(server: McpServer): void {
               declaredProducedEventVersionIds: producedEventVersionIds,
               consumers: [],
             },
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'update_application_version_state',
+      {
+        description: 'Update the lifecycle state of an application version',
+        inputSchema: {
+          applicationVersionId: ZApplicationVersionId,
+          state: ZLifecycleState,
+        },
+      },
+      async ({ applicationVersionId, state }) => {
+        try {
+          const result = await ApplicationsService.updateApplicationVersionState({
+            versionId: applicationVersionId,
+            requestBody: { stateId: await resolveStateId(state) },
           });
           return ok(result);
         } catch (error) {

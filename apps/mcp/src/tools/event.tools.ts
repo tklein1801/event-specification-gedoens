@@ -4,7 +4,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { err, ok } from './helpers';
 import { z } from 'zod';
 import { ZApplicationDomainId } from '../schemas/ApplicationDomain.schema';
-import { ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
+import { ZPageNumber, ZPageSize, ZLifecycleState } from '../schemas/Shared.schema';
+import { resolveStateId } from '../lib/state.service';
 import { ZApplicationName, ZApplicationType } from '../schemas/Application.schema';
 import {
   ZEventName,
@@ -192,6 +193,28 @@ export function registerEventTools(server: McpServer): void {
                     }
                   : undefined,
             },
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'update_event_version_state',
+      {
+        description: 'Update the lifecycle state of an event version',
+        inputSchema: {
+          eventVersionId: ZEventVersionId,
+          state: ZLifecycleState,
+        },
+      },
+      async ({ eventVersionId, state }) => {
+        try {
+          const result = await EventsService.updateEventVersionState({
+            id: eventVersionId,
+            requestBody: { stateId: await resolveStateId(state) },
           });
           return ok(result);
         } catch (error) {

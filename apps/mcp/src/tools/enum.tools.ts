@@ -13,7 +13,8 @@ import {
   ZEnumVersion,
   ZEnumVersionId,
 } from '../schemas/Enum.schema';
-import { ZPageNumber, ZPageSize } from '../schemas/Shared.schema';
+import { ZPageNumber, ZPageSize, ZLifecycleState } from '../schemas/Shared.schema';
+import { resolveStateId } from '../lib/state.service';
 import { ZShared } from '../schemas/Schema.schema';
 
 export function registerEnumTools(server: McpServer): void {
@@ -128,6 +129,28 @@ export function registerEnumTools(server: McpServer): void {
               description,
               values,
             } as TopicAddressEnumVersion,
+          });
+          return ok(result);
+        } catch (error) {
+          return err(error);
+        }
+      },
+    );
+
+    server.registerTool(
+      'update_enum_version_state',
+      {
+        description: 'Update the lifecycle state of an enumeration version',
+        inputSchema: {
+          enumVersionId: ZEnumVersionId,
+          state: ZLifecycleState,
+        },
+      },
+      async ({ enumVersionId, state }) => {
+        try {
+          const result = await EnumsService.updateEnumVersionState({
+            id: enumVersionId,
+            requestBody: { stateId: await resolveStateId(state) },
           });
           return ok(result);
         } catch (error) {
