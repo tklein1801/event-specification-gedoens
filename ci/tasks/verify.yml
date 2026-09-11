@@ -1,0 +1,29 @@
+---
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: node
+    tag: latest
+
+inputs:
+  - name: repo
+
+caches:
+  - path: .npm-cache
+  - path: .turbo
+
+run:
+  path: sh
+  args:
+    - -ce
+    - |
+      export NPM_CONFIG_CACHE="$PWD/.npm-cache"
+      export TURBO_CACHE_DIR="$PWD/.turbo"
+      cd repo
+      npm ci --include=optional
+      npm run lint
+      npm run typecheck
+      npm run test
+      npm run build
