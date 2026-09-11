@@ -11,8 +11,9 @@ import { RunCommand } from './commands/run.cmd';
 import { config } from './appConfig';
 import type { LogLevel } from './lib/getLogLevel';
 import { logger } from './lib/logger';
+import { getErrorDetails } from './lib/toolLogging';
 
-void run([RunCommand], {
+run([RunCommand], {
   name: cliName,
   description: cliDescription,
   version: () => {
@@ -30,4 +31,7 @@ void run([RunCommand], {
     config.setLogLevel(level);
     logger.level = level;
   },
+}).catch((error) => {
+  logger.error('MCP CLI failed', { error: getErrorDetails(error) });
+  process.exitCode = 1;
 });
