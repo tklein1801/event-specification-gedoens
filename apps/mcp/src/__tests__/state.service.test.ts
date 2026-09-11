@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StatesService } from '@solace-labs/ep-openapi-node';
-import { resolveStateId } from '../lib/state.service';
+import { clearStateCache, resolveStateId } from '../lib/state.service';
 
 vi.mock('@solace-labs/ep-openapi-node', () => ({
   StatesService: {
@@ -11,6 +11,9 @@ vi.mock('@solace-labs/ep-openapi-node', () => ({
 const getStatesMock = vi.mocked(StatesService.getStates);
 
 describe('resolveStateId()', () => {
+  beforeEach(() => {
+    clearStateCache();
+  });
   it('resolves a lifecycle state name to its ID', async () => {
     getStatesMock.mockResolvedValueOnce({
       data: [
