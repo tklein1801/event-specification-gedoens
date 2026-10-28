@@ -64,6 +64,8 @@ The always-available `migrate_asyncapi` tool converts YAML or JSON AsyncAPI spec
 
 It accepts `content`, `action`, and an optional `format` (`yaml` or `json`) and uses the same migration core as the webapp and CLI.
 
+The `export_application_asyncapi` and `export_event_api_asyncapi` tools retrieve AsyncAPI for an application version or event API version. They return the specification content and metadata without writing server-side files. Use `get_event_apis` and `get_event_api_versions` to find event API version IDs. Both export tools accept `format` (`yaml` or `json`), `asyncApiVersion` (`2.0.0`, `2.2.0`, or `2.5.0`), and `includedExtensions` (`all`, `parent`, `version`, or `none`). Defaults are `yaml`, `2.5.0`, and `all`.
+
 ## Documentation
 
 See the complete MCP service reference, including configuration, endpoints, authentication, and all available tools:
