@@ -184,6 +184,21 @@ Example tool arguments:
 
 The migration runs locally in the MCP service; no CLI process is started and no external service is required.
 
+### AsyncAPI Export
+
+| Tool                          | Availability | Description                               |
+| :---------------------------- | :----------- | :---------------------------------------- |
+| `export_application_asyncapi` | Always       | Export an application version as AsyncAPI |
+| `export_event_api_asyncapi`   | Always       | Export an event API version as AsyncAPI   |
+| `get_event_apis`              | Always       | List event APIs with optional filters     |
+| `get_event_api`               | Always       | Get one event API by ID                   |
+| `get_event_api_versions`      | Always       | List versions for event APIs              |
+| `get_event_api_version`       | Always       | Get one event API version by ID           |
+
+Pass an application or event API version ID to the matching export tool. The result includes the specification content, format, AsyncAPI version, source, and version ID. The service returns content and does not write files.
+
+Both export tools accept optional `format` (`yaml` or `json`), `asyncApiVersion` (`2.0.0`, `2.2.0`, or `2.5.0`), and `includedExtensions` (`all`, `parent`, `version`, or `none`). Defaults are `yaml`, `2.5.0`, and `all`. The exported content can be passed separately to `migrate_asyncapi`.
+
 ### Applications
 
 | Tool                               | Availability   | Description                                          |

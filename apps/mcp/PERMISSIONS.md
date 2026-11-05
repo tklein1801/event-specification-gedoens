@@ -84,6 +84,32 @@
 
 - `event_designer:access`
 
+### `export_application_asyncapi`
+
+- `application:generate_async_api:*`
+
+## Event APIs
+
+### `get_event_api`
+
+- `event_api:get:*`
+
+### `get_event_apis`
+
+- `event_designer:access`
+
+### `get_event_api_version`
+
+- `event_api:get:*`
+
+### `get_event_api_versions`
+
+- `event_designer:access`
+
+### `export_event_api_asyncapi`
+
+- `event_api:generate_async_api:*`
+
 ## Events
 
 ### `create_event`
