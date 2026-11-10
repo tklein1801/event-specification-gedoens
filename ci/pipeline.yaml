@@ -53,7 +53,7 @@ resources:
     icon: github
     source:
       repository: ((repository.owner))/((repository.name))
-      access_token: ((github.token))
+      access_token: ((github.pat))
       base_branch: ((pull-request.target-branch))
   - name: version
     type: semver
@@ -270,7 +270,7 @@ jobs:
           inputs:
             - name: pull-request
           params:
-            GH_TOKEN: ((github.token))
+            GH_TOKEN: ((github.pat))
             GITHUB_REPOSITORY: ((repository.owner))/((repository.name))
           run:
             path: sh
