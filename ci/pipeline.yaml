@@ -146,7 +146,7 @@ jobs:
             params: { bump: patch }
           - get: repository
       - task: build
-        file: repository/ci/task-build.yaml
+        file: repository/ci/tasks/build.task.yaml
       - in_parallel:
           - put: version
             params: { file: version/version }
@@ -178,7 +178,7 @@ jobs:
             params: { bump: minor }
           - get: repository
       - task: build
-        file: repository/ci/task-build.yaml
+        file: repository/ci/tasks/build.task.yaml
       - in_parallel:
           - put: version
             params: { file: version/version }
@@ -210,7 +210,7 @@ jobs:
             params: { bump: major }
           - get: repository
       - task: build
-        file: repository/ci/task-build.yaml
+        file: repository/ci/tasks/build.task.yaml
       - in_parallel:
           - put: version
             params: { file: version/version }
