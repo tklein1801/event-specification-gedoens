@@ -1,3 +1,3 @@
 # Changelog
 
-Alle relevanten Änderungen an CLI und Webapp werden hier durch Semantic Release dokumentiert.
+Historische Release-Änderungen an CLI und Webapp sind in dieser Datei dokumentiert.

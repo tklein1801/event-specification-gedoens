@@ -27,17 +27,11 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.6",
-    "@semantic-release/npm": "^12.0.2",
-    "@semantic-release/release-notes-generator": "^14.1.1",
     "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "prettier": "^3.9.0",
-    "semantic-release": "^24.2.9",
     "turbo": "^2.5.8",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.63.0"
@@ -49,7 +43,6 @@
   },
   "dependencies": {
     "@solace-labs/ep-openapi-node": "^3.0.0",
-    "@solace-labs/ep-rt-openapi-node": "^1.1.0",
-    "conventional-changelog-conventionalcommits": "^10.2.1"
+    "@solace-labs/ep-rt-openapi-node": "^1.1.0"
   }
 }
