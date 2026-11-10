@@ -249,7 +249,7 @@ jobs:
       - put: pull-request
         params: { path: pull-request, status: pending }
       - task: build-pr
-        file: repository/ci/tasks/build.task.yaml
+        file: pull-request/ci/tasks/build.task.yaml
       - put: pull-request
         params: { path: pull-request, status: success }
   - name: auto-merge-dependabot
