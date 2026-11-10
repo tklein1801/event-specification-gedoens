@@ -92,7 +92,7 @@ resources:
     type: docker-image
     icon: docker
     source:
-      repository: ghcr.io/((repo.owner))/((repo.name))
+      repository: ghcr.io/((repository.owner))/((repository.name))
       username: ((docker.username))
       password: ((docker.password))
   - name: timer
