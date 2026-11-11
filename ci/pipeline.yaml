@@ -103,6 +103,7 @@ resources:
 jobs:
   - name: build
     public: true
+    serial_groups: [release]
     on_success:
       put: gh-commit-status
       inputs: [repository]
@@ -137,6 +138,7 @@ jobs:
         params: { file: version/version }
   - name: release-patch
     public: false
+    serial_groups: [release]
     plan:
       - in_parallel:
           - get: version
@@ -169,6 +171,7 @@ jobs:
               tag_as_latest: true
   - name: release-minor
     public: false
+    serial_groups: [release]
     plan:
       - in_parallel:
           - get: version
@@ -201,6 +204,7 @@ jobs:
               tag_as_latest: true
   - name: release-major
     public: false
+    serial_groups: [release]
     plan:
       - in_parallel:
           - get: version

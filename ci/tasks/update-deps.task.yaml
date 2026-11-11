@@ -12,6 +12,7 @@ caches:
   - path: node_modules
 params:
   CI: 'true'
+  HUSKY: '0'
   FORCE_COLOR: 1
   NPM_CONFIG_FUND: 'false'
   GIT_AUTHOR_NAME: '((git_user_name))'
@@ -26,8 +27,16 @@ run:
     - |
       apk add --no-cache --no-progress git
       npm ci
-      npm run lint:fix
+      npm update --workspaces --include-workspace-root
+      npm audit fix
+      npm run lint
       npm run test
       npm run build
-      git add package.json package-lock.json || true
-      git commit -m 'chore: update npm dependencies' || true
+      git add package.json package-lock.json ':(glob)apps/*/package.json' ':(glob)packages/*/package.json'
+      if git diff --cached --quiet; then
+        echo 'No dependency changes to commit.'
+      else
+        status=$?
+        [ "$status" -eq 1 ] || exit "$status"
+        git commit -m 'chore: update npm dependencies'
+      fi
