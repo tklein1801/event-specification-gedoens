@@ -142,9 +142,9 @@ jobs:
     plan:
       - in_parallel:
           - get: version
-            passed: [build]
             params: { bump: patch }
           - get: repository
+            passed: [build]
       - task: build
         file: repository/ci/tasks/build.task.yaml
       - in_parallel:
@@ -175,9 +175,9 @@ jobs:
     plan:
       - in_parallel:
           - get: version
-            passed: [build]
             params: { bump: minor }
           - get: repository
+            passed: [build]
       - task: build
         file: repository/ci/tasks/build.task.yaml
       - in_parallel:
@@ -208,9 +208,9 @@ jobs:
     plan:
       - in_parallel:
           - get: version
-            passed: [build]
             params: { bump: major }
           - get: repository
+            passed: [build]
       - task: build
         file: repository/ci/tasks/build.task.yaml
       - in_parallel:
