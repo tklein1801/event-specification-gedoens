@@ -267,8 +267,8 @@ jobs:
           image_resource:
             type: registry-image
             source:
-              repository: ghcr.io/cli/cli
-              tag: latest
+              repository: alpine
+              tag: '3.22'
           inputs:
             - name: pull-request
           params:
@@ -295,6 +295,8 @@ jobs:
                   echo "Could not read the commit SHA from the resource version."
                   exit 1
                 fi
+
+                apk add --no-cache github-cli
 
                 echo "Enabling auto-merge for Dependabot PR #$pr at commit $sha."
 
