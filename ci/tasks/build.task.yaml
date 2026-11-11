@@ -1,0 +1,51 @@
+platform: linux
+image_resource:
+  type: registry-image
+  source:
+    repository: node
+    tag: alpine
+inputs:
+  - name: repository
+  - name: version
+    optional: true
+outputs:
+  - name: repository
+  - name: version
+caches:
+  - path: node_modules
+params:
+  CI: 'true'
+  FORCE_COLOR: 1
+  NPM_CONFIG_FUND: 'false'
+  PREPARE_RELEASE: 'true'
+run:
+  path: sh
+  dir: repository
+  args:
+    - -ecx
+    - |
+      if [ "$PREPARE_RELEASE" = 'true' ]; then
+        if [ ! -f ../version/version ]; then
+          echo 'Missing version file: ../version/version' >&2
+          exit 1
+        fi
+        NEW_VERSION="$(cat ../version/version)"
+      fi
+
+      npm ci
+      npm test
+      npm run build
+
+      if [ "$PREPARE_RELEASE" = 'true' ]; then
+        echo "Preparing version $NEW_VERSION"
+        (
+          cd packages/cli
+          npm version "$NEW_VERSION" --no-git-tag-version
+          npm publish --access public --tag latest --dry-run
+        )
+        (
+          cd apps/mcp
+          npm version "$NEW_VERSION" --no-git-tag-version
+          npm publish --access public --tag latest --dry-run
+        )
+      fi

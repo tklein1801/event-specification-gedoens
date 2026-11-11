@@ -1,0 +1,321 @@
+groups:
+  - name: all
+    jobs:
+      - '*'
+  - name: build
+    jobs:
+      - build
+  - name: release
+    jobs:
+      - release-*
+  - name: pull-request
+    jobs:
+      - pr-checks
+      - auto-merge-dependabot
+  - name: maintenance
+    jobs:
+      - update-dependencies
+resource_types:
+  - name: pull-request
+    type: registry-image
+    source:
+      repository: cfcommunity/github-pr-resource
+      tag: latest
+  - name: cogito
+    type: registry-image
+    check_every: 24h
+    source:
+      repository: pix4d/cogito
+      tag: '0.17.3'
+  - name: npm
+    type: registry-image
+    check_every: 24h
+    source:
+      repository: timotto/concourse-npm-resource
+resources:
+  - name: repository
+    type: git
+    icon: git
+    source:
+      uri: git@github.com:((repository.owner))/((repository.name)).git
+      branch: ((repository.branch))
+      private_key: ((github.private_key))
+  - name: gh-commit-status
+    type: cogito
+    icon: github
+    check_every: never
+    source:
+      owner: ((repository.owner))
+      repo: ((repository.name))
+      access_token: ((github.pat))
+  - name: pull-request
+    type: pull-request
+    icon: github
+    source:
+      repository: ((repository.owner))/((repository.name))
+      access_token: ((github.pat))
+      base_branch: ((pull-request.target-branch))
+  - name: version
+    type: semver
+    icon: tag
+    check_every: never
+    source:
+      driver: git
+      uri: git@github.com:((repository.owner))/((repository.name)).git
+      branch: version
+      file: version
+      private_key: ((github.private_key))
+      git_user: ((git.name)) <((git.email))>
+      initial_version: 1.3.1
+  - name: github-release
+    type: github-release
+    icon: github
+    source:
+      owner: ((repository.owner))
+      repository: ((repository.name))
+      access_token: ((github.pat))
+  - name: cli-npm-release
+    type: npm
+    icon: npm
+    source:
+      package: '@tklein1801/esg-cli'
+      registry:
+        token: ((npm.token))
+  - name: mcp-npm-release
+    type: npm
+    icon: npm
+    source:
+      package: '@tklein1801/esg-mcp'
+      registry:
+        token: ((npm.token))
+  - name: webapp-docker-release
+    type: docker-image
+    icon: docker
+    source:
+      repository: ghcr.io/((repository.owner))/((repository.name))
+      username: ((docker.username))
+      password: ((docker.password))
+  - name: timer
+    type: time
+    icon: clock-outline
+    source:
+      interval: ((dependency-update.interval))
+jobs:
+  - name: build
+    public: true
+    on_success:
+      put: gh-commit-status
+      inputs: [repository]
+      params: { state: success }
+    on_failure:
+      put: gh-commit-status
+      inputs: [repository]
+      params: { state: failure }
+    on_error:
+      put: gh-commit-status
+      inputs: [repository]
+      params: { state: error }
+    on_abort:
+      put: gh-commit-status
+      inputs: [repository]
+      params: { state: abort }
+    plan:
+      - in_parallel:
+          - get: repository
+            trigger: true
+          - get: version
+            params: { pre: rc }
+      - put: gh-commit-status
+        inputs: [repository]
+        params: { state: pending }
+      - task: build
+        file: repository/ci/tasks/build.task.yaml
+      - task: validate-docker-image
+        privileged: true
+        file: repository/ci/tasks/validate-docker-image.task.yaml
+      - put: version
+        params: { file: version/version }
+  - name: release-patch
+    public: false
+    plan:
+      - in_parallel:
+          - get: version
+            passed: [build]
+            params: { bump: patch }
+          - get: repository
+      - task: build
+        file: repository/ci/tasks/build.task.yaml
+      - in_parallel:
+          - put: version
+            params: { file: version/version }
+          - put: github-release
+            params:
+              name: version/version
+              tag: version/version
+          - put: cli-npm-release
+            params:
+              path: repository/packages/cli
+              public: 'true'
+          - put: mcp-npm-release
+            params:
+              path: repository/apps/mcp
+              public: 'true'
+          - put: webapp-docker-release
+            get_params: { skip_download: true }
+            params:
+              build: repository
+              dockerfile: repository/apps/webapp/Dockerfile
+              tag_file: version/version
+              tag_as_latest: true
+  - name: release-minor
+    public: false
+    plan:
+      - in_parallel:
+          - get: version
+            passed: [build]
+            params: { bump: minor }
+          - get: repository
+      - task: build
+        file: repository/ci/tasks/build.task.yaml
+      - in_parallel:
+          - put: version
+            params: { file: version/version }
+          - put: github-release
+            params:
+              name: version/version
+              tag: version/version
+          - put: cli-npm-release
+            params:
+              path: repository/packages/cli
+              public: 'true'
+          - put: mcp-npm-release
+            params:
+              path: repository/apps/mcp
+              public: 'true'
+          - put: webapp-docker-release
+            get_params: { skip_download: true }
+            params:
+              build: repository
+              dockerfile: repository/apps/webapp/Dockerfile
+              tag_file: version/version
+              tag_as_latest: true
+  - name: release-major
+    public: false
+    plan:
+      - in_parallel:
+          - get: version
+            passed: [build]
+            params: { bump: major }
+          - get: repository
+      - task: build
+        file: repository/ci/tasks/build.task.yaml
+      - in_parallel:
+          - put: version
+            params: { file: version/version }
+          - put: github-release
+            params:
+              name: version/version
+              tag: version/version
+          - put: cli-npm-release
+            params:
+              path: repository/packages/cli
+              public: 'true'
+          - put: mcp-npm-release
+            params:
+              path: repository/apps/mcp
+              public: 'true'
+          - put: webapp-docker-release
+            get_params: { skip_download: true }
+            params:
+              build: repository
+              dockerfile: repository/apps/webapp/Dockerfile
+              tag_file: version/version
+              tag_as_latest: true
+  - name: pr-checks
+    public: true
+    on_failure:
+      put: pull-request
+      params: { path: pull-request, status: error }
+    on_error:
+      put: pull-request
+      params: { path: pull-request, status: error }
+    plan:
+      - in_parallel:
+          - get: pull-request
+            trigger: true
+            version: every # check back into this value
+      - put: pull-request
+        params: { path: pull-request, status: pending }
+      - task: build-pr
+        file: pull-request/ci/tasks/build.task.yaml
+        input_mapping:
+          repository: pull-request
+        params:
+          PREPARE_RELEASE: 'false'
+      - put: pull-request
+        params: { path: pull-request, status: success }
+  - name: auto-merge-dependabot
+    public: true
+    plan:
+      - get: pull-request
+        trigger: true
+        passed: [pr-checks]
+        version: every
+      - task: enable-auto-merge
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: ghcr.io/cli/cli
+              tag: latest
+          inputs:
+            - name: pull-request
+          params:
+            GH_TOKEN: ((github.pat))
+            GITHUB_REPOSITORY: ((repository.owner))/((repository.name))
+          run:
+            path: sh
+            args:
+              - -ec
+              - |
+                author="$(cat pull-request/.git/resource/author)"
+                pr="$(cat pull-request/.git/resource/pr)"
+
+                # The resource version contains the commit that passed the pr-checks job.
+                sha="$(sed -n 's/.*"commit"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+                  pull-request/.git/resource/version.json)"
+
+                if [ "$author" != "dependabot[bot]" ]; then
+                  echo "PR #$pr was opened by $author; skipping auto-merge."
+                  exit 0
+                fi
+
+                if [ -z "$sha" ]; then
+                  echo "Could not read the commit SHA from the resource version."
+                  exit 1
+                fi
+
+                echo "Enabling auto-merge for Dependabot PR #$pr at commit $sha."
+
+                gh pr merge "$pr" \
+                  --repo "$GITHUB_REPOSITORY" \
+                  --squash \
+                  --auto \
+                  --match-head-commit "$sha"
+  - name: update-dependencies
+    public: true
+    plan:
+      - in_parallel:
+          - get: repository
+          - get: timer
+            trigger: true
+      - task: npm-update
+        file: repository/ci/tasks/update-deps.task.yaml
+        vars:
+          git_user_name: ((git.name))
+          git_user_email: ((git.email))
+        on_success:
+          put: repository
+          params:
+            repository: repository

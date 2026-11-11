@@ -115,7 +115,7 @@ Reusable React components belong in `packages/ui`, not in an individual app. Its
 
 ## CI and releases
 
-The CI workflow uses npm Workspaces and Turbo caching, then runs `npm ci`, lint, typecheck, tests, and the production build. On pushes to `main`, the release workflow repeats these gates and runs path-aware Semantic Release for the CLI, webapp, and MCP service independently. Conventional Commits determine the version increment (`feat` = minor, `fix`/`refactor` = patch, breaking changes = major); only packages touched by a commit are released. All releases update the central `CHANGELOG.md`, while `packages/cli` is published as `@tklein1801/esg-cli` and `apps/mcp` is published as `@tklein1801/esg-mcp`.
+Concourse runs the build and test gates, then validates the webapp Docker image without publishing it. Successful builds create an RC version. Afterward, a manual `release-patch`, `release-minor`, or `release-major` job publishes the CLI and MCP packages to npm, creates a webapp Docker image, and creates a GitHub release. See [versioning and releases](docs/versioning.md) for setup and details.
 
 ## Documentation
 
