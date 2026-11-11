@@ -133,8 +133,6 @@ jobs:
       - task: validate-docker-image
         privileged: true
         file: repository/ci/tasks/validate-docker-image.task.yaml
-        input_mapping:
-          repository: build/repository
       - put: version
         params: { file: version/version }
   - name: release-patch
@@ -160,7 +158,7 @@ jobs:
               public: 'true'
           - put: mcp-npm-release
             params:
-              path: repository/packages/mcp
+              path: repository/apps/mcp
               public: 'true'
           - put: webapp-docker-release
             get_params: { skip_download: true }
@@ -192,7 +190,7 @@ jobs:
               public: 'true'
           - put: mcp-npm-release
             params:
-              path: repository/packages/mcp
+              path: repository/apps/mcp
               public: 'true'
           - put: webapp-docker-release
             get_params: { skip_download: true }
@@ -224,7 +222,7 @@ jobs:
               public: 'true'
           - put: mcp-npm-release
             params:
-              path: repository/packages/mcp
+              path: repository/apps/mcp
               public: 'true'
           - put: webapp-docker-release
             get_params: { skip_download: true }
@@ -250,6 +248,10 @@ jobs:
         params: { path: pull-request, status: pending }
       - task: build-pr
         file: pull-request/ci/tasks/build.task.yaml
+        input_mapping:
+          repository: pull-request
+        params:
+          PREPARE_RELEASE: 'false'
       - put: pull-request
         params: { path: pull-request, status: success }
   - name: auto-merge-dependabot
