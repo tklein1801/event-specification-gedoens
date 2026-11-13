@@ -9,3 +9,6 @@ pull-request:
   target-branch: main
 dependency-update:
   interval: 168h
+deployment:
+  path: event-specification-gedoens
+  project_name: event-specification-gedoens

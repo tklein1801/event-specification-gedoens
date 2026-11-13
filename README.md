@@ -61,6 +61,37 @@ Start the local application with `npm run dev` and open the Vite URL shown in th
 
 Migration happens entirely in the browser. Specifications are never uploaded to a server.
 
+## Deployment
+
+Each successful patch, minor, or major release automatically deploys its versioned
+image through the shared Concourse task `ci/tasks/deploy.task.yaml`. Configure
+`deployment.host`, `deployment.ssh_username`, `deployment.ssh_private_key`, and
+`deployment.known_hosts` as Concourse credentials, and adjust the non-secret
+deployment settings in `ci/vars.yaml`. Registry credentials use the existing
+`docker.username` and `docker.password` credentials. The task also supports
+omitting registry credentials when the image is public or the server is already
+authenticated; in that case omit those parameters from the pipeline as well.
+Relative deployment paths are resolved against the SSH user's home directory.
+The task prepares the files; the Concourse `ssh-scp` resource transfers them and
+executes the deployment over SSH on port 22. If cleanup fails, remove the
+`.deploy-staging` directory from the deployment path before retrying.
+
+The server needs Docker, Docker Compose v2 with `up --wait`, and an SSH user
+with access to Docker and the deployment directory. The directory is created on
+first deployment. Optionally set `WEB_PORT` in its `.env` file (default: 8080).
+The active Compose file and image reference are stored as `compose.yml` and
+`.deploy-image.env`; for manual commands use both environment files, for example:
+
+```sh
+docker compose --env-file .env --env-file .deploy-image.env -p event-specification-gedoens -f compose.yml ps
+```
+
+The Compose project name in the command must match `deployment.project_name`.
+The deploy task accepts a different `COMPOSE_FILE` and project name for reuse.
+The Compose file defines the image and uses `IMAGE_TAG` for
+the release version. Deployments do not automatically roll back
+if starting the new container fails.
+
 ## CLI
 
 Build and link the CLI locally:

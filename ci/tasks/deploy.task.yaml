@@ -1,0 +1,54 @@
+platform: linux
+image_resource:
+  type: registry-image
+  source:
+    repository: alpine
+    tag: '3.22'
+inputs:
+  - name: repository
+  - name: version
+outputs:
+  - name: deploy-files
+  - name: registry-credentials
+params:
+  DEPLOY_PATH:
+  COMPOSE_FILE: compose.yml
+  COMPOSE_PROJECT_NAME:
+  REGISTRY_HOST: ''
+  REGISTRY_USERNAME: ''
+  REGISTRY_PASSWORD: ''
+run:
+  path: sh
+  args:
+    - -eu
+    - -c
+    - |
+      : "${DEPLOY_PATH:?}" "${COMPOSE_PROJECT_NAME:?}"
+      version=$(cat version/version)
+
+      # These values are interpolated into remote shell commands.
+      case "$DEPLOY_PATH" in
+        /|.|..|-*|../*|./*|*[!a-zA-Z0-9_./-]*|*/../*|*/..|*/./*|*/.)
+          echo 'Invalid deployment path' >&2; exit 1 ;;
+      esac
+      case "$COMPOSE_PROJECT_NAME" in
+        ''|[!a-z0-9]*|*[!a-z0-9_-]*) echo 'Invalid Compose project name' >&2; exit 1 ;;
+      esac
+      case "$version" in
+        ''|*[!a-zA-Z0-9_.-]*) echo 'Invalid image tag' >&2; exit 1 ;;
+      esac
+      case "${REGISTRY_HOST:-}" in
+        *[!a-zA-Z0-9.:-]*|-*) echo 'Invalid registry host' >&2; exit 1 ;;
+      esac
+      if [ -n "${REGISTRY_USERNAME:-}${REGISTRY_PASSWORD:-}" ]; then
+        [ -n "${REGISTRY_HOST:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ] || {
+          echo 'Registry host, username and password must be provided together' >&2; exit 1
+        }
+      fi
+
+      printf '%s\n' "$version" > deploy-files/version
+      cp "repository/${COMPOSE_FILE:-compose.yml}" deploy-files/compose.next.yml
+      cp repository/ci/scripts/deploy-remote.sh deploy-files/deploy.sh
+      umask 077
+      printf '%s' "${REGISTRY_USERNAME:-}" > registry-credentials/username
+      printf '%s' "${REGISTRY_PASSWORD:-}" > registry-credentials/password

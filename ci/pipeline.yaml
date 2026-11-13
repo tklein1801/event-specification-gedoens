@@ -8,6 +8,9 @@ groups:
   - name: release
     jobs:
       - release-*
+  - name: deploy
+    jobs:
+      - deploy-*
   - name: pull-request
     jobs:
       - pr-checks
@@ -32,6 +35,10 @@ resource_types:
     check_every: 24h
     source:
       repository: timotto/concourse-npm-resource
+  - name: ssh-scp
+    type: registry-image
+    source:
+      repository: ghcr.io/tklein1801/concourse-ssh-scp-resource
 resources:
   - name: repository
     type: git
@@ -100,6 +107,15 @@ resources:
     icon: clock-outline
     source:
       interval: ((dependency-update.interval))
+  - name: server-target
+    type: ssh-scp
+    icon: server
+    check_every: never
+    source:
+      user: ((deployment.ssh_username))
+      host: ((deployment.host))
+      known_hosts: ((deployment.known_hosts))
+      private_key: ((deployment.ssh_private_key))
 jobs:
   - name: build
     public: true
@@ -235,6 +251,69 @@ jobs:
               dockerfile: repository/apps/webapp/Dockerfile
               tag_file: version/version
               tag_as_latest: true
+  - name: deploy-patch
+    serial_groups: [release]
+    plan:
+      - get: repository
+        passed: [release-patch]
+      - get: version
+        passed: [release-patch]
+        trigger: true
+      - do: &deploy-steps
+          - task: deploy
+            file: repository/ci/tasks/deploy.task.yaml
+            params:
+              DEPLOY_PATH: ((deployment.path))
+              COMPOSE_PROJECT_NAME: ((deployment.project_name))
+              REGISTRY_HOST: ghcr.io
+              REGISTRY_USERNAME: ((docker.username))
+              REGISTRY_PASSWORD: ((docker.password))
+          - load_var: deploy-version
+            file: deploy-files/version
+            format: trim
+          - put: server-target
+            inputs: []
+            no_get: true
+            params:
+              commands:
+                - "umask 077 && mkdir -p -- '((deployment.path))' && mkdir -- '((deployment.path))/.deploy-staging'"
+          - do:
+              - put: server-target
+                inputs: [deploy-files, registry-credentials]
+                no_get: true
+                params:
+                  files:
+                    deploy-files/compose.next.yml: '((deployment.path))/.deploy-staging/compose.next.yml'
+                    deploy-files/deploy.sh: '((deployment.path))/.deploy-staging/deploy.sh'
+                    registry-credentials/username: '((deployment.path))/.deploy-staging/username'
+                    registry-credentials/password: '((deployment.path))/.deploy-staging/password'
+                  commands:
+                    - "cd '((deployment.path))' && sh .deploy-staging/deploy.sh .deploy-staging '((deployment.project_name))' '((.:deploy-version))' 'ghcr.io'"
+            ensure:
+              put: server-target
+              inputs: []
+              no_get: true
+              params:
+                commands:
+                  - "rm -rf -- '((deployment.path))/.deploy-staging'"
+  - name: deploy-minor
+    serial_groups: [release]
+    plan:
+      - get: repository
+        passed: [release-minor]
+      - get: version
+        passed: [release-minor]
+        trigger: true
+      - do: *deploy-steps
+  - name: deploy-major
+    serial_groups: [release]
+    plan:
+      - get: repository
+        passed: [release-major]
+      - get: version
+        passed: [release-major]
+        trigger: true
+      - do: *deploy-steps
   - name: pr-checks
     public: true
     on_failure:
