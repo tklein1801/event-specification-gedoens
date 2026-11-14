@@ -5,6 +5,9 @@ groups:
   - name: build
     jobs:
       - build
+  - name: deploy
+    jobs:
+      - deploy
   - name: release
     jobs:
       - release-*
@@ -32,6 +35,10 @@ resource_types:
     check_every: 24h
     source:
       repository: timotto/concourse-npm-resource
+  - name: ssh-scp
+    type: registry-image
+    source:
+      repository: ghcr.io/tklein1801/concourse-ssh-scp-resource
 resources:
   - name: repository
     type: git
@@ -92,7 +99,7 @@ resources:
     type: docker-image
     icon: docker
     source:
-      repository: ghcr.io/((repository.owner))/((repository.name))
+      repository: ghcr.io/((repository.owner))/esg-webapp
       username: ((docker.username))
       password: ((docker.password))
   - name: timer
@@ -100,6 +107,17 @@ resources:
     icon: clock-outline
     source:
       interval: ((dependency-update.interval))
+  - name: server-target
+    type: ssh-scp
+    icon: server
+    check_every: never
+    source:
+      user: ((deployment-vps1.ssh_username))
+      host: ((deployment-vps1.host))
+      known_hosts: |
+        ((deployment-vps1.known_hosts))
+      private_key: |
+        ((deployment-vps1.ssh_private_key))
 jobs:
   - name: build
     public: true
@@ -134,8 +152,60 @@ jobs:
       - task: validate-docker-image
         privileged: true
         file: repository/ci/tasks/validate-docker-image.task.yaml
+      - put: webapp-docker-release
+        get_params: { skip_download: true }
+        params:
+          build: repository
+          dockerfile: repository/apps/webapp/Dockerfile
+          tag_file: repository/.git/short_ref
+          tag_as_latest: false
       - put: version
         params: { file: version/version }
+  - name: deploy
+    serial: true
+    plan:
+      - in_parallel:
+          - get: repository
+            passed: [build]
+          - get: webapp-docker-release
+            passed: [build]
+            params: { skip_download: true }
+      - task: deploy
+        file: repository/ci/tasks/deploy.task.yaml
+        input_mapping:
+          container-registry: webapp-docker-release
+        params:
+          DEPLOY_PATH: ((deployment.path))
+          REGISTRY_USERNAME: ((docker.username))
+          REGISTRY_PASSWORD: ((docker.password))
+      - load_var: deploy-image
+        file: deploy-files/image-ref
+        format: trim
+      - put: server-target
+        inputs: []
+        no_get: true
+        params:
+          commands:
+            - "mkdir -p -- '((deployment.path))' && umask 077 && mkdir -- '((deployment.path))/.registry-credentials'"
+      - do:
+          - put: server-target
+            inputs: [deploy-files, registry-credentials]
+            no_get: true
+            params:
+              files:
+                'deploy-files/compose.next.yml': '((deployment.path))/compose.next.yml'
+                'deploy-files/deploy.next.sh': '((deployment.path))/deploy.next.sh'
+                'registry-credentials/username': '((deployment.path))/.registry-credentials/username'
+                'registry-credentials/password': '((deployment.path))/.registry-credentials/password'
+              commands:
+                - "sh '((deployment.path))/deploy.next.sh' '((deployment.path))' '((.:deploy-image))'"
+        ensure:
+          put: server-target
+          inputs: []
+          no_get: true
+          params:
+            commands:
+              - "rm -f -- '((deployment.path))/.registry-credentials/username' '((deployment.path))/.registry-credentials/password' && if [ -d '((deployment.path))/.registry-credentials' ]; then rmdir -- '((deployment.path))/.registry-credentials'; fi"
   - name: release-patch
     public: false
     serial_groups: [release]

@@ -12,6 +12,10 @@ RUN npx turbo run build --filter=@tklein1801/esg-webapp
 
 FROM nginx:1.29-alpine
 
+LABEL org.opencontainers.image.source="https://github.com/tklein1801/event-specification-gedoens" \
+      org.opencontainers.image.description="ESG web application" \
+      org.opencontainers.image.licenses="MIT"
+
 ENV PORT=8080
 
 COPY --from=build /app/apps/webapp/dist /usr/share/nginx/html
