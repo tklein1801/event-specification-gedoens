@@ -61,6 +61,21 @@ Start the local application with `npm run dev` and open the Vite URL shown in th
 
 Migration happens entirely in the browser. Specifications are never uploaded to a server.
 
+## Web application deployment
+
+The Concourse deploy job deploys a built image by digest. Start the job manually
+after a successful build. The server needs Docker Compose with `up --wait` support
+and access to GHCR. The pipeline supplies the registry credentials temporarily.
+
+The deployment directory can contain an optional `.env` file. Set
+`WEBAPP_BIND_ADDRESS` and `WEBAPP_PORT` there to change the default host binding
+of `127.0.0.1:8080`. Configure a reverse proxy for external access, or explicitly
+choose another bind address. The container listens on port 8080.
+
+For a manual Compose deployment, run `docker compose up -d` to use `:latest`.
+Set `WEBAPP_TAG` to a suffix such as `:1.0.0` or `@sha256:<digest>` to select
+another image. The pipeline always deploys by digest.
+
 ## CLI
 
 Build and link the CLI locally:
