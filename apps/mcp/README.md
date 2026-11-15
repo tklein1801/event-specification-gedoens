@@ -62,7 +62,7 @@ The always-available `migrate_asyncapi` tool converts YAML or JSON AsyncAPI spec
 - `to-structured`: AsyncAPI 2.x / unstructured → AsyncAPI 3.x / structured
 - `to-unstructured`: AsyncAPI 3.x / structured → AsyncAPI 2.x / unstructured
 
-It accepts `content`, `action`, and an optional `format` (`yaml` or `json`) and uses the same migration core as the webapp and CLI.
+It accepts `content`, `action`, an optional `format` (`yaml` or `json`), and an optional `eventName`. The complete specification is migrated first. With `eventName`, `content` contains only that event's migrated payload schema; without it, `content` contains the complete migrated specification. An unknown event is an MCP error. Local schema references are resolved; unresolved or circular references produce an error.
 
 ## Documentation
 
