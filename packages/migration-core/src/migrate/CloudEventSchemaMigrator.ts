@@ -44,7 +44,7 @@ export class CloudEventSchemaMigrator {
     const referencedName = this.localSchemaName(message.payload);
     const schemaName = this.claimSchemaName(referencedName, preferredSchemaName);
     const resolvedEnvelope = this.requireObject(
-      this.resolveSchemaReferences(envelope),
+      this.navigator.resolveSchemaReferences(envelope),
       'A resolved structured message payload',
     );
 
@@ -105,7 +105,10 @@ export class CloudEventSchemaMigrator {
     if (schemaEntries.length > 0) {
       result.schemas = resolveReferences
         ? Object.fromEntries(
-            schemaEntries.map(([name, schema]) => [name, this.resolveSchemaReferences(schema)]),
+            schemaEntries.map(([name, schema]) => [
+              name,
+              this.navigator.resolveSchemaReferences(schema),
+            ]),
           )
         : Object.fromEntries(schemaEntries);
     }
@@ -287,49 +290,6 @@ export class CloudEventSchemaMigrator {
     let suffix = 2;
     while (Object.hasOwn(components, `${base}_${suffix}`)) suffix += 1;
     return `${base}_${suffix}`;
-  }
-
-  private resolveSchemaReferences(value: unknown, resolving = new Set<string>()): unknown {
-    if (Array.isArray(value)) {
-      return value.map((item) => this.resolveSchemaReferences(item, resolving));
-    }
-    if (!AsyncApiDocumentNavigator.isObject(value)) return structuredClone(value);
-
-    if (typeof value.$ref === 'string') {
-      if (!value.$ref.startsWith('#/')) {
-        throw new InvalidAsyncApiSpecification(
-          `Schema reference '${value.$ref}' cannot be resolved locally.`,
-        );
-      }
-      if (resolving.has(value.$ref)) {
-        throw new InvalidAsyncApiSpecification(
-          `Circular schema reference '${value.$ref}' cannot be fully resolved.`,
-        );
-      }
-      const resolved = this.navigator.resolve(value);
-      if (resolved === undefined) {
-        throw new InvalidAsyncApiSpecification(
-          `Schema reference '${value.$ref}' cannot be resolved.`,
-        );
-      }
-
-      const nextResolving = new Set(resolving).add(value.$ref);
-      const siblings = AsyncApiDocumentNavigator.omit(value, ['$ref']);
-      const resolvedValue = this.resolveSchemaReferences(resolved, nextResolving);
-      return AsyncApiDocumentNavigator.isObject(resolvedValue)
-        ? {
-            ...resolvedValue,
-            ...(this.resolveSchemaReferences(siblings, nextResolving) as JsonObject),
-          }
-        : resolvedValue;
-    }
-
-    return Object.fromEntries(
-      Object.entries(value).map(([key, child]) => [
-        key,
-        this.resolveSchemaReferences(child, resolving),
-      ]),
-    );
   }
 
   private claimSchemaName(

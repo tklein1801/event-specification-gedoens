@@ -1,6 +1,33 @@
 import type { AsyncApiDocument } from '../AsyncApiSpecification';
+import { InvalidAsyncApiSpecification } from '../InvalidAsyncApiSpecification';
 
 export type JsonObject = Record<string, unknown>;
+
+const SCHEMA_MAPS = new Set([
+  'properties',
+  'patternProperties',
+  'definitions',
+  '$defs',
+  'dependentSchemas',
+  'dependencies',
+]);
+const SCHEMA_VALUES = new Set([
+  'items',
+  'additionalItems',
+  'additionalProperties',
+  'contains',
+  'propertyNames',
+  'not',
+  'if',
+  'then',
+  'else',
+  'unevaluatedItems',
+  'unevaluatedProperties',
+  'allOf',
+  'anyOf',
+  'oneOf',
+  'prefixItems',
+]);
 
 export class AsyncApiDocumentNavigator {
   constructor(private readonly document: AsyncApiDocument) {}
@@ -16,6 +43,50 @@ export class AsyncApiDocumentNavigator {
   resolveObject(value: unknown): JsonObject | undefined {
     const resolved = this.resolve(value);
     return AsyncApiDocumentNavigator.isObject(resolved) ? resolved : undefined;
+  }
+
+  resolveSchemaReferences(value: unknown, resolving = new Set<string>()): unknown {
+    if (Array.isArray(value))
+      return value.map((item) => this.resolveSchemaReferences(item, resolving));
+    if (!AsyncApiDocumentNavigator.isObject(value)) return structuredClone(value);
+    if (typeof value.$ref === 'string') {
+      const ref = value.$ref;
+      if (!ref.startsWith('#/')) {
+        throw new InvalidAsyncApiSpecification(
+          `Schema reference '${ref}' cannot be resolved locally.`,
+        );
+      }
+      if (resolving.has(ref)) {
+        throw new InvalidAsyncApiSpecification(
+          `Circular schema reference '${ref}' cannot be fully resolved.`,
+        );
+      }
+      const target = this.resolve(value);
+      if (target === undefined) {
+        throw new InvalidAsyncApiSpecification(`Schema reference '${ref}' cannot be resolved.`);
+      }
+      const next = new Set(resolving).add(ref);
+      const resolved = this.resolveSchemaReferences(target, next);
+      const siblings = AsyncApiDocumentNavigator.omit(value, ['$ref']);
+      return AsyncApiDocumentNavigator.isObject(resolved)
+        ? { ...resolved, ...(this.resolveSchemaReferences(siblings, next) as JsonObject) }
+        : resolved;
+    }
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [
+        key,
+        SCHEMA_MAPS.has(key) && AsyncApiDocumentNavigator.isObject(child)
+          ? Object.fromEntries(
+              Object.entries(child).map(([name, schema]) => [
+                name,
+                this.resolveSchemaReferences(schema, resolving),
+              ]),
+            )
+          : SCHEMA_VALUES.has(key)
+            ? this.resolveSchemaReferences(child, resolving)
+            : structuredClone(child),
+      ]),
+    );
   }
 
   resolveReference(reference: string): unknown {

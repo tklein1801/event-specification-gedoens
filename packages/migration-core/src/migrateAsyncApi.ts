@@ -65,7 +65,7 @@ export function migrateAsyncApiText(
   };
 }
 
-export function serializeAsyncApi(document: AsyncApiDocument, format: SpecificationFormat): string {
+export function serializeAsyncApi(document: unknown, format: SpecificationFormat): string {
   return format === 'json'
     ? `${JSON.stringify(document, null, 2)}\n`
     : stringify(document, { indent: 2, lineWidth: 0 });
