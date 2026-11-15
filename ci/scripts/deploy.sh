@@ -8,9 +8,10 @@ fail() {
 }
 
 validate_arguments() {
-  [ "$#" -eq 2 ] || fail "Usage: $0 DEPLOYMENT_DIRECTORY IMAGE@sha256:DIGEST"
+  [ "$#" -eq 3 ] || fail "Usage: $0 DEPLOYMENT_DIRECTORY IMAGE@sha256:DIGEST TAG"
   deployment_dir=$1
   image=$2
+  tag=$3
 
   case "$image" in
     *@sha256:*) repository=${image%@sha256:*}; digest=${image##*@sha256:} ;;
@@ -21,6 +22,9 @@ validate_arguments() {
     *[!0-9a-f]*|'') fail "Invalid sha256 digest" ;;
   esac
   [ "${#digest}" -eq 64 ] || fail "Invalid sha256 digest length"
+  case "$tag" in *[!0-9a-f]*|'') fail "Invalid image tag" ;; esac
+  [ "${#tag}" -ge 7 ] && [ "${#tag}" -le 40 ] || fail "Invalid image tag length"
+  tagged_image="$repository:$tag"
 }
 
 check_requirements() {
@@ -37,7 +41,7 @@ check_requirements() {
 }
 
 compose() {
-  docker compose --project-directory "$project_dir" -p "$project_name" -f "$@"
+  docker compose --project-directory "$project_dir" -f "$@"
 }
 
 cleanup() {
@@ -55,11 +59,7 @@ cleanup() {
 }
 
 initialize_deployment() {
-  # Both Compose files must use the same project name.
   project_dir=$(pwd -P)
-  project_hash=$(printf '%s' "$project_dir" | cksum)
-  project_hash=${project_hash%% *}
-  project_name="tklein-it-$project_hash"
 
   mkdir .deploy.lock 2>/dev/null || fail "Deployment is already running or .deploy.lock cannot be created"
   temp_file=
@@ -68,14 +68,14 @@ initialize_deployment() {
   trap cleanup 0
   trap 'exit 1' HUP INT TERM
   temp_file=$(mktemp .deploy-image.XXXXXX) || fail "Cannot create deployment state file"
-  export WEBAPP_TAG="@sha256:$digest"
+  export WEBAPP_TAG=":$tag"
 }
 
 validate_compose() {
   services=$(compose compose.next.yml config --services) || fail "Cannot inspect Compose services"
   [ "$services" = web ] || fail "Compose configuration must contain only the web service"
   configured_image=$(compose compose.next.yml config --images) || fail "Cannot inspect Compose images"
-  [ "$configured_image" = "$image" ] || fail "Compose image does not match the requested digest"
+  [ "$configured_image" = "$tagged_image" ] || fail "Compose image does not match the requested tag"
 }
 
 backup_current_deployment() {
@@ -132,6 +132,7 @@ pull_image() {
   else
     DOCKER_CONFIG="$docker_config_dir" DOCKER_CONTEXT="$docker_context" docker pull "$image" || fail "Image pull failed; running service was not changed"
   fi
+  docker tag "$image" "$tagged_image" || fail "Image tagging failed; running service was not changed"
 }
 
 login_registry() {

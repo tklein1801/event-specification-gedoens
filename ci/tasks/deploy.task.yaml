@@ -31,9 +31,12 @@ run:
       esac
       repository=$(cat container-registry/repository)
       digest=$(cat container-registry/digest)
+      tag=$(cat repository/.git/short_ref)
       [ "$repository" = ghcr.io/tklein1801/esg-webapp ] || { echo 'Unexpected image repository' >&2; exit 1; }
       printf '%s\n' "$digest" | grep -Eq '^sha256:[a-f0-9]{64}$'
+      printf '%s\n' "$tag" | grep -Eq '^[a-f0-9]{7,40}$'
       printf '%s@%s\n' "$repository" "$digest" > deploy-files/image-ref
+      printf '%s\n' "$tag" > deploy-files/image-tag
       cp repository/compose.yml deploy-files/compose.next.yml
       cp repository/ci/scripts/deploy.sh deploy-files/deploy.next.sh
       [ -n "$REGISTRY_USERNAME" ] && [ -n "$REGISTRY_PASSWORD" ] || { echo 'Registry credentials are required' >&2; exit 1; }
