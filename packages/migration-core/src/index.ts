@@ -5,6 +5,7 @@ export * from './InvalidAsyncApiSpecification';
 export * from './migrateAsyncApi';
 export * from './migrateJsonAsyncApi';
 export * from './migrate/AsyncApiMigration';
+export * from './migrate/AsyncApiDocumentNavigator';
 export * from './migrate/AsyncApiMigrationFactory';
 export * from './migrate/ToStructuredAsyncApiMigration';
 export * from './migrate/ToUnstructuredAsyncApiMigration';

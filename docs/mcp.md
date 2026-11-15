@@ -150,13 +150,14 @@ All tools are grouped by domain. Read-only tools (`get_*`, list operations) are 
 
 Input parameters:
 
-| Parameter | Required | Description                                                   |
-| :-------- | :------: | :------------------------------------------------------------ |
-| `content` |   Yes    | AsyncAPI specification as YAML or JSON                        |
-| `action`  |   Yes    | `to-structured` or `to-unstructured`                          |
-| `format`  |    No    | Output format: `yaml` or `json`; defaults to the input format |
+| Parameter   | Required | Description                                                   |
+| :---------- | :------: | :------------------------------------------------------------ |
+| `content`   |   Yes    | AsyncAPI specification as YAML or JSON                        |
+| `action`    |   Yes    | `to-structured` or `to-unstructured`                          |
+| `format`    |    No    | Output format: `yaml` or `json`; defaults to the input format |
+| `eventName` |    No    | Exact event name; return only its migrated payload schema     |
 
-The result contains the migrated specification in `content`, its `format`, the selected `action`, and the resulting AsyncAPI version. Invalid syntax, unsupported versions, and migration validation errors are returned as MCP tool errors.
+The complete specification is migrated first, even when `eventName` is supplied. The result contains the complete migrated specification in `content` when `eventName` is omitted. When supplied, `content` instead contains only that event's migrated payload schema, with local references resolved. The response also contains `format`, `action`, and the resulting AsyncAPI version. Unknown events, ambiguous schemas, unresolved or circular references, invalid syntax, unsupported versions, and migration validation errors are returned as MCP tool errors.
 
 Example tool arguments:
 

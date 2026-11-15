@@ -175,6 +175,12 @@ additional CLI process. It accepts:
 - `content`: AsyncAPI JSON or YAML text.
 - `action`: `to-structured` or `to-unstructured`.
 - `format`: optional `yaml` or `json` output format.
+- `eventName`: optional exact event name; returns only its migrated payload schema.
+
+The tool migrates the complete specification first. Without `eventName`, it returns
+the complete migrated AsyncAPI document.
+Unknown events, ambiguous schemas, and unresolved or circular references produce
+an MCP error. The selected schema includes the CloudEvent envelope in structured mode.
 
 Use `to-structured` for the canonical Event Portal representation and
 `to-unstructured` only when an S4 EEE-Framework-compatible AsyncAPI 2.x
@@ -187,7 +193,7 @@ document is explicitly needed. The migration convention is:
 - Unstructured CloudEvents keep context in headers and business data in the
   payload.
 
-Validate the returned `asyncapi` version, channels, operations, messages,
+When requesting the full document, validate the returned `asyncapi` version, channels, operations, messages,
 components, and references before persisting it. External or circular schema
 references and unsupported constructs may require manual review.
 
