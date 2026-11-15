@@ -63,7 +63,8 @@ Migration happens entirely in the browser. Specifications are never uploaded to 
 
 ## Web application deployment
 
-The Concourse deploy job deploys a built image by digest. Start the job manually
+The Concourse deploy job pulls the built image by digest and starts it using its
+commit tag, so `docker ps` shows the GHCR image name. Start the job manually
 after a successful build. The server needs Docker Compose with `up --wait` support
 and access to GHCR. The pipeline supplies the registry credentials temporarily.
 
@@ -74,7 +75,36 @@ choose another bind address. The container listens on port 8080.
 
 For a manual Compose deployment, run `docker compose up -d` to use `:latest`.
 Set `WEBAPP_TAG` to a suffix such as `:1.0.0` or `@sha256:<digest>` to select
-another image. The pipeline always deploys by digest.
+another image. The pipeline records the digest for rollback. Compose uses its
+normal project name, derived from the deployment directory unless overridden by
+`COMPOSE_PROJECT_NAME` or another Compose setting.
+
+### Migrating an existing deployment
+
+The previous deployment used a separate, hash-based Compose project. Before the
+first deployment with the new naming, allow a brief interruption and migrate it
+on the server (do not run these commands during another deployment):
+
+1. Change to the deployment directory. Find the old project name with
+   `docker ps` (the part before `-web-1`), and record it as `OLD_PROJECT`.
+   Verify it belongs to this application. Record the image digest from
+   `.deploy-image` and keep the existing `compose.yml` and `.deploy-image` files.
+2. Ensure the old digest is available locally with `docker image inspect` and
+   back up `compose.yml` and `.deploy-image` outside the deployment directory.
+   Ensure the new build image is available in GHCR before stopping the service.
+3. Stop only the old service using
+   `docker compose -p "$OLD_PROJECT" -f compose.yml stop web`, then run the
+   new Concourse deploy job. Confirm the new service is healthy with `docker ps`.
+4. Once healthy, remove the old stopped container with
+   `docker compose -p "$OLD_PROJECT" -f <backup-compose-file> rm -f web`.
+   Do not remove volumes.
+
+If the new deployment fails, stop any new-project service first. Restore the
+backed-up `compose.yml` and `.deploy-image`, then start the previous service
+with its recorded digest: set `WEBAPP_TAG` to the digest suffix
+`@sha256:<digest>` and run
+`docker compose -p "$OLD_PROJECT" -f compose.yml up -d --no-deps --pull never --wait web`.
+Do not remove the old container until the new service is healthy.
 
 ## CLI
 

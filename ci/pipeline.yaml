@@ -181,6 +181,9 @@ jobs:
       - load_var: deploy-image
         file: deploy-files/image-ref
         format: trim
+      - load_var: deploy-tag
+        file: deploy-files/image-tag
+        format: trim
       - put: server-target
         inputs: []
         no_get: true
@@ -198,7 +201,7 @@ jobs:
                 'registry-credentials/username': '((deployment.path))/.registry-credentials/username'
                 'registry-credentials/password': '((deployment.path))/.registry-credentials/password'
               commands:
-                - "sh '((deployment.path))/deploy.next.sh' '((deployment.path))' '((.:deploy-image))'"
+                - "sh '((deployment.path))/deploy.next.sh' '((deployment.path))' '((.:deploy-image))' '((.:deploy-tag))'"
         ensure:
           put: server-target
           inputs: []
